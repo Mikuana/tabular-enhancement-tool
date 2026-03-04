@@ -236,38 +236,6 @@ df_enhanced = enhancer.process_dataframe(df)
 tet.save_tabular_file(df_enhanced, "users.csv", suffix="_enriched")
 ```
 
-## Data Output
-
-The output file will contain all original columns exactly as they appeared in the source, plus additional columns based on the enhancement method used. By default, responses are **flattened** (expanded into individual columns).
-
-### Flattened Output (Default)
-When flattening is enabled, each key in the response dictionary becomes a new column in the resulting file.
-
-**Example (API):**
-| id | name | status | tier | exception_summary |
-|----|------|--------|------|-------------------|
-| 01 | Alice| active | gold | |
-| 02 | Bob  | | | `500 Server Error` |
-
-### Non-Flattened Output
-If you use the `--no_flatten` CLI flag or set `flatten_response=False` in Python, the tool appends a single response column.
-
-**REST API Method:**
-Appends `api_response` (JSON string/dict) and `exception_summary`.
-
-**SQLAlchemy Method:**
-Appends `odbc_response` (JSON string/dict) and `exception_summary`.
-
-## Running Tests
-
-The project uses `pytest` for testing. You can run all tests using the following command:
-
-```bash
-pytest
-```
-
-If you prefer `unittest`, it is still compatible:
-
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
