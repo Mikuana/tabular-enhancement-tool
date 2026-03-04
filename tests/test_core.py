@@ -164,6 +164,79 @@ class TestCore(unittest.TestCase):
         self.assertIn("api_response", df_enhanced.columns)
         self.assertIn("exception_summary", df_enhanced.columns)
 
+    @patch("requests.get")
+    def test_tabular_enhancer_get_templating(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"forecast": "url"}
+        mock_get.return_value = mock_response
+
+        # Test URL templating
+        api_url = "http://api.example.com/points/{lat},{lon}"
+        mapping = {"lat": "id", "lon": "name"}  # Using existing columns for test
+        enhancer = TabularEnhancer(api_url, mapping, method="GET")
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        # First row: id="01", name="Alice"
+        expected_url = "http://api.example.com/points/01,Alice"
+        mock_get.assert_any_call(
+            expected_url,
+            params=None,
+            timeout=10,
+            auth=None,
+            headers=None
+        )
+        self.assertEqual(df_enhanced.loc[0, "api_response"], {"forecast": "url"})
+
+    @patch("requests.get")
+    def test_tabular_enhancer_get_params(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"data": "ok"}
+        mock_get.return_value = mock_response
+
+        # Test query parameters (no templating in URL)
+        api_url = "http://api.example.com/search"
+        mapping = {"q": "name"}
+        enhancer = TabularEnhancer(api_url, mapping, method="GET")
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        # First row: name="Alice" -> ?q=Alice
+        mock_get.assert_any_call(
+            api_url,
+            params={"q": "Alice"},
+            timeout=10,
+            auth=None,
+            headers=None
+        )
+        self.assertEqual(df_enhanced.loc[0, "api_response"], {"data": "ok"})
+
+    @patch("requests.get")
+    def test_tabular_enhancer_get_combined(self, mock_get):
+        """Test both URL templating and query parameters in a single GET request."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"combined": "ok"}
+        mock_get.return_value = mock_response
+
+        # URL with placeholders, plus additional mapping fields for query params
+        api_url = "http://api.example.com/user/{id}"
+        mapping = {"id": "id", "format": "name"}  # 'id' for URL, 'format' for params
+        enhancer = TabularEnhancer(api_url, mapping, method="GET")
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        # First row: id="01", name="Alice"
+        # Expected URL: http://api.example.com/user/01
+        # Expected Params: {"format": "Alice"}
+        mock_get.assert_any_call(
+            "http://api.example.com/user/01",
+            params={"format": "Alice"},
+            timeout=10,
+            auth=None,
+            headers=None
+        )
+        self.assertEqual(df_enhanced.loc[0, "api_response"], {"combined": "ok"})
+
     @patch("requests.post")
     def test_tabular_enhancer_order_preservation(self, mock_post):
         # Use a longer dataframe to better test concurrency issues

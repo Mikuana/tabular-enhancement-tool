@@ -20,6 +20,7 @@ The **Tabular-Enhancement-Tool (tet)** is designed to streamline this enrichment
 - **Append-Only Enhancement**: Your original columns are never modified. The responses are appended as new columns (`api_response` or `odbc_response`, and `exception_summary`), allowing you to preserve the lineage of the raw data while adding new value.
 - **Strict Order Preservation**: Even with parallel execution, the output rows are guaranteed to match the order of the input file, making it safe for downstream processes that rely on stable indexing.
 - **Flexible field mapping**: Map DataFrame columns to API payload fields or database query filters.
+- **HTTP GET and POST support**: Choose the appropriate method for your API, with support for URL templating and query parameters.
 - **REST API Authentication**: Supports Basic Auth, Bearer Token, and API Key authentication schemes.
 - **SQLAlchemy Integration**: Supports any database with a SQLAlchemy dialect (PostgreSQL, MySQL, SQLite, Oracle, SQL Server, etc.).
 
@@ -53,6 +54,7 @@ tabular-enhancer input_data.csv \
 **API Options:**
 - `--api_url`: The endpoint where the POST request will be sent.
 - `--mapping`: A JSON string mapping API payload keys to your file's column names. e.g. `'{"api_field": "csv_column"}'`.
+- `--method`: (Optional) HTTP method to use (`POST` or `GET`, default: `POST`).
 - `--auth_type`: (Optional) Authentication type (`basic`, `bearer`, or `apikey`).
 - `--auth_user`: (Optional) Username for `basic` auth.
 - `--auth_pass`: (Optional) Password for `basic` auth.
@@ -90,6 +92,9 @@ tabular-enhancer data.csv --api_url "..." --mapping '...' --auth_type bearer --a
 
 # API Key
 tabular-enhancer data.csv --api_url "..." --mapping '...' --auth_type apikey --auth_token "your_api_key"
+
+# GET request with URL templating
+tabular-enhancer data.csv --api_url "https://api.weather.gov/points/{lat},{lon}" --mapping '{"lat": "latitude", "lon": "longitude"}' --method GET
 ```
 
 ### REST API Enhancement
@@ -111,6 +116,25 @@ df_enhanced = enhancer.process_dataframe(df)
 
 # Save
 tet.save_tabular_file(df_enhanced, "my_data.xlsx")
+```
+
+### REST API Enhancement (GET with URL Templating)
+
+```python
+import tabular_enhancement_tool as tet
+
+# Load data with coordinates
+df = tet.read_tabular_file("cities.csv")
+
+# NWS API example
+api_url = "https://api.weather.gov/points/{lat},{lon}"
+mapping = {"lat": "lat", "lon": "lon"}
+headers = {"User-Agent": "(myweatherapp.com, contact@example.com)"}
+
+enhancer = tet.TabularEnhancer(api_url, mapping, method="GET", headers=headers)
+
+# Process
+df_enhanced = enhancer.process_dataframe(df)
 ```
 
 ### SQLAlchemy Database Enhancement (Core)

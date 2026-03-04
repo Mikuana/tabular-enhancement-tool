@@ -30,6 +30,12 @@ def main():
         default="X-API-Key",
         help="Header name for API Key auth (default: X-API-Key)",
     )
+    api_group.add_argument(
+        "--method",
+        default="POST",
+        choices=["POST", "GET"],
+        help="HTTP method to use (default: POST)",
+    )
 
     # SQLAlchemy arguments
     sqlalchemy_group = parser.add_argument_group("SQLAlchemy Options")
@@ -116,6 +122,7 @@ def main():
             max_workers=args.max_workers,
             auth=auth,
             headers=headers,
+            method=args.method,
         )
     else:
         print("Enhancing data using SQLAlchemy...")

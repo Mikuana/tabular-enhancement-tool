@@ -60,25 +60,32 @@ class TabularEnhancer(BaseEnhancer):
         max_workers: int = 5,
         auth: Any = None,
         headers: Dict[str, str] = None,
+        method: str = "POST",
     ):
         """
-        :param api_url: The URL of the API to call.
+        :param api_url: The URL of the API to call. Can contain placeholders for GET requests.
         :param mapping: Dictionary mapping API field names to DataFrame column names.
                         Example: {'user_id': 'id', 'user_name': 'name'}
         :param max_workers: Number of threads for parallel processing.
         :param auth: Optional authentication for the API call (e.g., requests.auth.HTTPBasicAuth).
         :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
+        :param method: HTTP method to use (POST or GET).
         """
         super().__init__(max_workers=max_workers)
         self.api_url = api_url
         self.mapping = mapping
         self.auth = auth
         self.headers = headers
+        self.method = method.upper()
 
     def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
         """Constructs the JSON payload from the row based on mapping."""
         payload = {}
         for api_field, col_name in self.mapping.items():
+            if col_name not in row.index:
+                logger.warning(
+                    f"Column '{col_name}' not found in row. Mapping it to 'None'."
+                )
             payload[api_field] = row.get(col_name)
         return payload
 
@@ -87,13 +94,50 @@ class TabularEnhancer(BaseEnhancer):
         result = {"index": index, "response": None, "exception_summary": None}
         try:
             payload = self._prepare_payload(row)
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                timeout=10,
-                auth=self.auth,
-                headers=self.headers,
-            )
+            url = self.api_url
+            if self.method == "GET":
+                # For GET, we support URL templating using mapping values.
+                # If the URL contains placeholders like {lat}, we fill them.
+                # Remaining mapping fields are passed as query parameters.
+                params = payload.copy()
+                try:
+                    # Look for placeholders in the URL
+                    import re
+                    placeholders = re.findall(r"\{([^{}]+)\}", self.api_url)
+                    if placeholders:
+                        # Create a dict for formatting and remove those keys from params
+                        format_dict = {}
+                        for p in placeholders:
+                            if p in params:
+                                format_dict[p] = params.pop(p)
+                        url = self.api_url.format(**format_dict)
+                    else:
+                        # No placeholders, use everything as query params
+                        pass
+                except (KeyError, ValueError):
+                    # If formatting fails, fallback to using all payload as query params
+                    url = self.api_url
+                    params = payload
+                
+                # If params is empty, set it to None for a cleaner request
+                if not params:
+                    params = None
+                
+                response = requests.get(
+                    url,
+                    params=params,
+                    timeout=10,
+                    auth=self.auth,
+                    headers=self.headers,
+                )
+            else:
+                response = requests.post(
+                    url,
+                    json=payload,
+                    timeout=10,
+                    auth=self.auth,
+                    headers=self.headers,
+                )
             response.raise_for_status()
             result["response"] = response.json()
         except Exception as e:
