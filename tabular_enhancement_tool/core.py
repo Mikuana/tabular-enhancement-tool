@@ -59,15 +59,15 @@ class BaseEnhancer:
                 else:
                     # If not a dict (e.g. None due to error), use empty dict
                     expanded_responses.append({})
-            
+
             res_df = pd.DataFrame(expanded_responses, index=df.index)
-            # Add a prefix to avoid collision? 
+            # Add a prefix to avoid collision?
             # The issue says "applied to the enhanced file as individual columns"
             # It doesn't specify prefix. Let's not add prefix unless needed.
             df_enhanced = pd.concat([df_enhanced, res_df], axis=1)
         else:
             df_enhanced["response"] = responses
-            
+
         df_enhanced["exception_summary"] = exceptions
 
         return df_enhanced
@@ -206,7 +206,7 @@ class ODBCEnhancer(BaseEnhancer):
         """
         super().__init__(max_workers=max_workers, flatten_response=flatten_response)
         self.connection_url = connection_url
-        self.mapping = mapping
+        self.mapping = mapping if mapping is not None else []
         self.model = model
         self.table_name = table_name
         self.engine = create_engine(self.connection_url)

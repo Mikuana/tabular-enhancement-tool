@@ -106,7 +106,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: Specify either --api_url or --db_url, not both.")
+                mock_print.assert_any_call(
+                    "Error: Specify either --api_url or --db_url, not both."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -115,7 +117,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: One of --api_url or --db_url is required.")
+                mock_print.assert_any_call(
+                    "Error: One of --api_url or --db_url is required."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -124,7 +128,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --mapping is required for API enhancement.")
+                mock_print.assert_any_call(
+                    "Error: --mapping is required for API enhancement."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -140,7 +146,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --mapping must be a JSON object for API enhancement.")
+                mock_print.assert_any_call(
+                    "Error: --mapping must be a JSON object for API enhancement."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -158,7 +166,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --auth_user and --auth_pass are required for basic auth.")
+                mock_print.assert_any_call(
+                    "Error: --auth_user and --auth_pass are required for basic auth."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -176,7 +186,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --auth_token is required for bearer auth.")
+                mock_print.assert_any_call(
+                    "Error: --auth_token is required for bearer auth."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -194,8 +206,37 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --auth_token is required for apikey auth.")
+                mock_print.assert_any_call(
+                    "Error: --auth_token is required for apikey auth."
+                )
                 mock_exit.assert_called_with(1)
+
+    def test_cli_main_entry(self):
+        """Test the if __name__ == '__main__': block in cli.py."""
+        import runpy
+        import os
+
+        # Use a real file path for input_file because cli.py checks for it
+        dummy_file = "dummy_entry.csv"
+        with open(dummy_file, "w") as f:
+            f.write("a,b\n1,2")
+
+        try:
+            # We don't patch 'tabular_enhancement_tool.cli.main' because runpy executes the module code
+            # and it will call the ACTUAL main() function defined in that module instance.
+            # Instead, we patch the 'main' that is in the namespace of the module being executed.
+            with patch("tabular_enhancement_tool.cli.tet.read_tabular_file") as mock_read:
+                mock_read.return_value = pd.DataFrame({"a": [1]})
+                with patch("tabular_enhancement_tool.cli.tet.save_tabular_file") as mock_save:
+                    with patch("tabular_enhancement_tool.cli.tet.TabularEnhancer") as mock_enhancer_cls:
+                        test_args = ["cli.py", dummy_file, "--api_url", "http://api.com", "--mapping", '{"a":"a"}']
+                        with patch("sys.argv", test_args):
+                            runpy.run_module("tabular_enhancement_tool.cli", run_name="__main__")
+                            # If it reached here without error, the __main__ block executed main()
+                            mock_enhancer_cls.assert_called_once()
+        finally:
+            if os.path.exists(dummy_file):
+                os.remove(dummy_file)
 
     @patch("sys.exit")
     def test_cli_db_no_table(self, mock_exit):
@@ -203,7 +244,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --table_name is required for SQLAlchemy enhancement.")
+                mock_print.assert_any_call(
+                    "Error: --table_name is required for SQLAlchemy enhancement."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -221,7 +264,9 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call("Error: --mapping must be a JSON list for SQLAlchemy enhancement.")
+                mock_print.assert_any_call(
+                    "Error: --mapping must be a JSON list for SQLAlchemy enhancement."
+                )
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -327,7 +372,6 @@ class TestCLI(unittest.TestCase):
         args, kwargs = mock_enhancer_cls.call_args
         self.assertEqual(kwargs["headers"], {"X-Custom-Key": "my_key"})
 
-
     @patch("tabular_enhancement_tool.core.ODBCEnhancer")
     @patch("tabular_enhancement_tool.core.read_tabular_file")
     @patch("tabular_enhancement_tool.core.save_tabular_file")
@@ -335,7 +379,9 @@ class TestCLI(unittest.TestCase):
         mock_read.return_value = pd.DataFrame({"id": [1]})
         mock_enhancer = MagicMock()
         mock_enhancer_cls.return_value = mock_enhancer
-        mock_enhancer.process_dataframe.return_value = pd.DataFrame({"id": [1], "odbc_response": [{}], "exception_summary": [None]})
+        mock_enhancer.process_dataframe.return_value = pd.DataFrame(
+            {"id": [1], "odbc_response": [{}], "exception_summary": [None]}
+        )
         mock_save.return_value = "test_sql_enhanced.csv"
 
         test_args = [

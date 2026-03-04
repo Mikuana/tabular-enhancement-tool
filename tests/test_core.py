@@ -198,11 +198,7 @@ class TestCore(unittest.TestCase):
         # First row: id="01", name="Alice"
         expected_url = "http://api.example.com/points/01,Alice"
         mock_get.assert_any_call(
-            expected_url,
-            params=None,
-            timeout=10,
-            auth=None,
-            headers=None
+            expected_url, params=None, timeout=10, auth=None, headers=None
         )
         self.assertEqual(df_enhanced.loc[0, "forecast"], "url")
 
@@ -221,11 +217,7 @@ class TestCore(unittest.TestCase):
 
         # First row: name="Alice" -> ?q=Alice
         mock_get.assert_any_call(
-            api_url,
-            params={"q": "Alice"},
-            timeout=10,
-            auth=None,
-            headers=None
+            api_url, params={"q": "Alice"}, timeout=10, auth=None, headers=None
         )
         self.assertEqual(df_enhanced.loc[0, "res"], "ok")
 
@@ -273,7 +265,7 @@ class TestCore(unittest.TestCase):
             params={"format": "Alice"},
             timeout=10,
             auth=None,
-            headers=None
+            headers=None,
         )
         self.assertEqual(df_enhanced.loc[0, "combined"], "ok")
 
@@ -304,6 +296,20 @@ class TestCore(unittest.TestCase):
         )
         for _, row in df_enhanced.iterrows():
             self.assertEqual(row["api_id"], row["id"])
+
+    def test_tabular_enhancer_missing_column_warning(self):
+        """Test that missing columns in mapping trigger a warning once."""
+        from tabular_enhancement_tool.core import logger
+
+        mapping = {"target": "missing_col"}
+        enhancer = TabularEnhancer("http://api.com", mapping)
+        df = pd.DataFrame({"existing": ["val1", "val2"]})
+
+        with patch.object(logger, "warning") as mock_warning:
+            enhancer.process_dataframe(df)
+            # Should be called once for 'missing_col' even though there are 2 rows
+            mock_warning.assert_called_once()
+            self.assertIn("missing_col", str(mock_warning.call_args))
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Tabular-Enhancement-Tool Documentation
    :maxdepth: 2
    :caption: Contents:
 
+   examples
    modules
 
 Indices and tables

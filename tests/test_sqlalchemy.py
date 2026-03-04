@@ -96,10 +96,17 @@ class TestSQLAlchemy(unittest.TestCase):
         # Mock the __enter__ method to return a mock session, then mock its execute to fail
         mock_session_obj.__enter__.return_value = mock_session_obj
         mock_session_obj.execute.side_effect = Exception("Database error")
-        with patch("tabular_enhancement_tool.core.Session", return_value=mock_session_obj):
+        with patch(
+            "tabular_enhancement_tool.core.Session", return_value=mock_session_obj
+        ):
             res = enhancer._process_row(0, self.df.iloc[0])
             self.assertEqual(res["exception_summary"], "Database error")
             self.assertIsNone(res["response"])
+
+    def test_odbcenhancer_missing_mapping(self):
+        """Test default mapping if None is provided."""
+        enhancer = ODBCEnhancer(self.db_url, None, table_name="users")
+        self.assertEqual(enhancer.mapping, [])
 
     def test_sqlalchemy_enhancer_no_model_no_table(self):
         # Trigger ValueError: Either 'model' or 'table_name' must be provided.
@@ -108,10 +115,13 @@ class TestSQLAlchemy(unittest.TestCase):
         enhancer._table = None
         enhancer.model = None
         res = enhancer._process_row(0, self.df.iloc[0])
-        self.assertEqual(res["exception_summary"], "Either 'model' or 'table_name' must be provided.")
+        self.assertEqual(
+            res["exception_summary"], "Either 'model' or 'table_name' must be provided."
+        )
 
     def test_base_enhancer_not_implemented(self):
         from tabular_enhancement_tool.core import BaseEnhancer
+
         base = BaseEnhancer()
         with self.assertRaises(NotImplementedError):
             base._process_row(0, pd.Series())
