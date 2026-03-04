@@ -54,12 +54,13 @@ def main():
     parser.add_argument(
         "--no_flatten",
         action="store_true",
-        help="Do not expand response objects into individual columns",
+        help="Do not expand response objects into individual columns. If used, the response will be stored as a single JSON object in 'api_response' or 'odbc_response'.",
     )
 
     args = parser.parse_args()
 
     import json
+    import logging
 
     if args.api_url and args.db_url:
         print("Error: Specify either --api_url or --db_url, not both.")
@@ -68,6 +69,17 @@ def main():
     if not args.api_url and not args.db_url:
         print("Error: One of --api_url or --db_url is required.")
         return sys.exit(1)
+
+    if args.db_url and args.no_flatten:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "The --no_flatten flag is enabled for SQLAlchemy enhancement. "
+            "Note that SQLAlchemy results are naturally structured; "
+            "disabling flattening will wrap each row's result into a single 'odbc_response' dictionary column."
+        )
 
     try:
         mapping = json.loads(args.mapping) if args.mapping else None

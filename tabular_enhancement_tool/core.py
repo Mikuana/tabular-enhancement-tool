@@ -18,9 +18,15 @@ logger = logging.getLogger(__name__)
 class BaseEnhancer:
     """Base class for enhancing DataFrames asynchronously."""
 
-    def __init__(self, max_workers: int = 5, flatten_response: bool = True):
+    def __init__(
+        self,
+        max_workers: int = 5,
+        flatten_response: bool = True,
+        response_column_name: str = "response",
+    ):
         self.max_workers = max_workers
         self.flatten_response = flatten_response
+        self.response_column_name = response_column_name
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
         """Processes a single row. Must be implemented by subclasses."""
@@ -66,7 +72,7 @@ class BaseEnhancer:
             # It doesn't specify prefix. Let's not add prefix unless needed.
             df_enhanced = pd.concat([df_enhanced, res_df], axis=1)
         else:
-            df_enhanced["response"] = responses
+            df_enhanced[self.response_column_name] = responses
 
         df_enhanced["exception_summary"] = exceptions
 
@@ -83,6 +89,7 @@ class TabularEnhancer(BaseEnhancer):
         headers: Dict[str, str] = None,
         method: str = "POST",
         flatten_response: bool = True,
+        response_column_name: str = "api_response",
     ):
         """
         :param api_url: The URL of the API to call. Can contain placeholders for GET requests.
@@ -93,8 +100,13 @@ class TabularEnhancer(BaseEnhancer):
         :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
         :param method: HTTP method to use (POST or GET).
         :param flatten_response: Whether to expand the response into individual columns (default: True).
+        :param response_column_name: Name of the response column when flattening is disabled (default: 'api_response').
         """
-        super().__init__(max_workers=max_workers, flatten_response=flatten_response)
+        super().__init__(
+            max_workers=max_workers,
+            flatten_response=flatten_response,
+            response_column_name=response_column_name,
+        )
         self.api_url = api_url
         self.mapping = mapping
         self.auth = auth
@@ -180,10 +192,7 @@ class TabularEnhancer(BaseEnhancer):
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Asynchronously processes each row of the DataFrame."""
         self._missing_cols_warned = set()
-        df_enhanced = super().process_dataframe(df)
-        if not self.flatten_response:
-            df_enhanced = df_enhanced.rename(columns={"response": "api_response"})
-        return df_enhanced
+        return super().process_dataframe(df)
 
 
 class ODBCEnhancer(BaseEnhancer):
@@ -195,6 +204,7 @@ class ODBCEnhancer(BaseEnhancer):
         table_name: Optional[str] = None,
         max_workers: int = 5,
         flatten_response: bool = True,
+        response_column_name: str = "odbc_response",
     ):
         """
         :param connection_url: SQLAlchemy connection URL.
@@ -203,8 +213,13 @@ class ODBCEnhancer(BaseEnhancer):
         :param table_name: Optional table name to use if model is not provided.
         :param max_workers: Number of threads for parallel processing.
         :param flatten_response: Whether to expand the response into individual columns (default: True).
+        :param response_column_name: Name of the response column when flattening is disabled (default: 'odbc_response').
         """
-        super().__init__(max_workers=max_workers, flatten_response=flatten_response)
+        super().__init__(
+            max_workers=max_workers,
+            flatten_response=flatten_response,
+            response_column_name=response_column_name,
+        )
         self.connection_url = connection_url
         self.mapping = mapping if mapping is not None else []
         self.model = model
@@ -250,10 +265,7 @@ class ODBCEnhancer(BaseEnhancer):
 
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Asynchronously processes each row of the DataFrame."""
-        df_enhanced = super().process_dataframe(df)
-        if not self.flatten_response:
-            df_enhanced = df_enhanced.rename(columns={"response": "odbc_response"})
-        return df_enhanced
+        return super().process_dataframe(df)
 
 
 def read_tabular_file(file_path: str) -> pd.DataFrame:

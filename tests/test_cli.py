@@ -225,13 +225,26 @@ class TestCLI(unittest.TestCase):
             # We don't patch 'tabular_enhancement_tool.cli.main' because runpy executes the module code
             # and it will call the ACTUAL main() function defined in that module instance.
             # Instead, we patch the 'main' that is in the namespace of the module being executed.
-            with patch("tabular_enhancement_tool.cli.tet.read_tabular_file") as mock_read:
+            with patch(
+                "tabular_enhancement_tool.cli.tet.read_tabular_file"
+            ) as mock_read:
                 mock_read.return_value = pd.DataFrame({"a": [1]})
-                with patch("tabular_enhancement_tool.cli.tet.save_tabular_file") as mock_save:
-                    with patch("tabular_enhancement_tool.cli.tet.TabularEnhancer") as mock_enhancer_cls:
-                        test_args = ["cli.py", dummy_file, "--api_url", "http://api.com", "--mapping", '{"a":"a"}']
+                with patch("tabular_enhancement_tool.cli.tet.save_tabular_file"):
+                    with patch(
+                        "tabular_enhancement_tool.cli.tet.TabularEnhancer"
+                    ) as mock_enhancer_cls:
+                        test_args = [
+                            "cli.py",
+                            dummy_file,
+                            "--api_url",
+                            "http://api.com",
+                            "--mapping",
+                            '{"a":"a"}',
+                        ]
                         with patch("sys.argv", test_args):
-                            runpy.run_module("tabular_enhancement_tool.cli", run_name="__main__")
+                            runpy.run_module(
+                                "tabular_enhancement_tool.cli", run_name="__main__"
+                            )
                             # If it reached here without error, the __main__ block executed main()
                             mock_enhancer_cls.assert_called_once()
         finally:
@@ -399,6 +412,45 @@ class TestCLI(unittest.TestCase):
 
         mock_enhancer_cls.assert_called_once()
         mock_save.assert_called_once()
+
+    @patch("logging.Logger.warning")
+    @patch("tabular_enhancement_tool.core.ODBCEnhancer")
+    @patch("tabular_enhancement_tool.core.read_tabular_file")
+    @patch("tabular_enhancement_tool.core.save_tabular_file")
+    def test_cli_db_no_flatten_warning(
+        self, mock_save, mock_read, mock_enhancer_cls, mock_warning
+    ):
+        mock_read.return_value = pd.DataFrame({"id": ["1"]})
+        mock_enhancer = MagicMock()
+        mock_enhancer_cls.return_value = mock_enhancer
+        mock_enhancer.process_dataframe.return_value = pd.DataFrame(
+            {"id": ["1"], "odbc_response": [{}], "exception_summary": [None]}
+        )
+        mock_save.return_value = "test_sql_enhanced.csv"
+
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--db_url",
+            "sqlite:///:memory:",
+            "--table_name",
+            "users",
+            "--no_flatten",
+        ]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+        mock_warning.assert_called()
+        # Find the specific warning among potentially multiple calls
+        found = False
+        for call in mock_warning.call_args_list:
+            if (
+                "The --no_flatten flag is enabled for SQLAlchemy enhancement"
+                in call.args[0]
+            ):
+                found = True
+                break
+        self.assertTrue(found)
 
 
 if __name__ == "__main__":
