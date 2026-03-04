@@ -17,7 +17,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "tabular-enhancer=tabular_enhancement_tool.cli:main",
+            "tabular_enhancement_tool=tabular_enhancement_tool.cli:main",
         ],
     },
     author="Christopher Boyd and co-authored/developed by Junie, an autonomous programmer developed by JetBrains.",
