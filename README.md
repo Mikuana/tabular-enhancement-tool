@@ -130,6 +130,12 @@ If you prefer `unittest`, it is still compatible:
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
+## Development and CI/CD
+
+- **Testing**: Run `pytest` locally or check the "Python Tests" GitHub Action.
+- **Documentation**: Managed by Sphinx and hosted on Read the Docs.
+- **Publishing**: The `main` branch is automatically built and published to PyPI on every push. **Note**: Remember to bump the version in `setup.py` and `tabular_enhancement_tool/__init__.py` before pushing to `main`.
+
 ## Credits
 
 This tool was authored by **Christopher Boyd** and co-authored/developed by **Junie**, an autonomous programmer developed by JetBrains.
