@@ -28,16 +28,29 @@ def main():
     )
     
     # 4. Process the DataFrame
-    df_enhanced = enhancer.process_dataframe(df)
-    
-    # 5. Save the results
-    output_path = tet.save_tabular_file(df_enhanced, csv_file, suffix="_enriched")
-    print(f"Process complete. Results saved to: {output_path}")
-    
-    # Display the results
-    print("\nEnhanced Results:")
-    # The database results are in the 'odbc_response' column as a dictionary
-    print(df_enhanced)
+    # Method 1: Default (Flattened)
+    # Database rows will be added as individual columns.
+    print("\n--- Method 1: Default (Flattened) ---")
+    df_flattened = enhancer.process_dataframe(df)
+    print("New columns from DB:", [c for c in df_flattened.columns if c not in df.columns])
+    print(df_flattened.head())
+
+    # Method 2: Non-Flattened
+    # Results will be contained within a single 'odbc_response' column.
+    print("\n--- Method 2: Non-Flattened ---")
+    enhancer_no_flatten = tet.ODBCEnhancer(
+        connection_url=db_url,
+        mapping=mapping,
+        table_name=table_name,
+        max_workers=5,
+        flatten_response=False
+    )
+    df_non_flattened = enhancer_no_flatten.process_dataframe(df)
+    print(df_non_flattened[["email", "odbc_response", "exception_summary"]].head())
+
+    # 5. Save the results (using flattened as preferred)
+    output_path = tet.save_tabular_file(df_flattened, csv_file, suffix="_enriched")
+    print(f"\nProcess complete. Results saved to: {output_path}")
 
 if __name__ == "__main__":
     main()

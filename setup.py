@@ -10,6 +10,7 @@ setup(
         "openpyxl",
         "sqlalchemy",
         "pyarrow",
+        "fastparquet",
     ],
     extras_require={
         "test": ["pytest", "coverage"],

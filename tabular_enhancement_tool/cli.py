@@ -50,6 +50,11 @@ def main():
         default=5,
         help="Number of threads for parallel processing",
     )
+    parser.add_argument(
+        "--no_flatten",
+        action="store_true",
+        help="Do not expand response objects into individual columns",
+    )
 
     args = parser.parse_args()
 
@@ -123,6 +128,7 @@ def main():
             auth=auth,
             headers=headers,
             method=args.method,
+            flatten_response=not args.no_flatten,
         )
     else:
         print("Enhancing data using SQLAlchemy...")
@@ -131,6 +137,7 @@ def main():
             mapping,
             table_name=args.table_name,
             max_workers=args.max_workers,
+            flatten_response=not args.no_flatten,
         )
 
     df_enhanced = enhancer.process_dataframe(df)

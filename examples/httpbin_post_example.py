@@ -29,16 +29,27 @@ def main():
     )
     
     # 4. Process the DataFrame
-    df_enhanced = enhancer.process_dataframe(df)
-    
-    # 5. Save the results
-    output_path = tet.save_tabular_file(df_enhanced, input_file, suffix="_enhanced")
-    print(f"Process complete. Results saved to: {output_path}")
-    
-    # Display a snippet of the results
-    print("\nSample Output:")
-    # httpbin returns the data sent in the 'json' field of its response
-    print(df_enhanced[["id", "title", "api_response", "exception_summary"]].head())
+    # By default, responses are automatically flattened into separate columns.
+    print("\n--- Method 1: Default (Flattened) ---")
+    df_flattened = enhancer.process_dataframe(df)
+    print("Flattened columns added:", [c for c in df_flattened.columns if c not in df.columns])
+    print(df_flattened.head())
+
+    # You can also opt-out of flattening to keep the response in a single column.
+    print("\n--- Method 2: Non-Flattened (Single Column) ---")
+    enhancer_no_flatten = tet.TabularEnhancer(
+        api_url=api_url,
+        mapping=mapping,
+        method="POST",
+        max_workers=5,
+        flatten_response=False
+    )
+    df_non_flattened = enhancer_no_flatten.process_dataframe(df)
+    print(df_non_flattened[["id", "title", "api_response", "exception_summary"]].head())
+
+    # 5. Save the results (using flattened as the preferred output)
+    output_path = tet.save_tabular_file(df_flattened, input_file, suffix="_enhanced")
+    print(f"\nProcess complete. Results saved to: {output_path}")
 
 if __name__ == "__main__":
     main()

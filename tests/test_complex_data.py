@@ -69,8 +69,8 @@ class TestComplexData(unittest.TestCase):
             df_enhanced = enhancer.process_dataframe(df_loaded)
 
             self.assertEqual(len(df_enhanced), 5)
-            self.assertIn("api_response", df_enhanced.columns)
-            self.assertEqual(df_enhanced.loc[0, "api_response"], {"processed": True})
+            self.assertIn("processed", df_enhanced.columns)
+            self.assertEqual(df_enhanced.loc[0, "processed"], True)
 
     def test_simulated_iris_dataset(self):
         # Iris-like dataset with floating point values
@@ -126,10 +126,8 @@ class TestComplexData(unittest.TestCase):
             enhancer = TabularEnhancer("http://api.example.com", mapping)
             df_enhanced = enhancer.process_dataframe(df_loaded)
 
-            self.assertEqual(
-                df_enhanced.loc[0, "api_response"]["echo"]["content"], "Héllo World"
-            )
-            self.assertEqual(df_enhanced.loc[0, "api_response"]["echo"]["val"], "007")
+            self.assertEqual(df_enhanced.loc[0, "echo"]["content"], "Héllo World")
+            self.assertEqual(df_enhanced.loc[0, "echo"]["val"], "007")
 
 
 if __name__ == "__main__":

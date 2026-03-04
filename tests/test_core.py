@@ -123,12 +123,31 @@ class TestCore(unittest.TestCase):
         df_enhanced = enhancer.process_dataframe(self.df)
 
         self.assertEqual(len(df_enhanced), 3)
+        self.assertIn("status", df_enhanced.columns)
+        self.assertIn("exception_summary", df_enhanced.columns)
+        for status in df_enhanced["status"]:
+            self.assertEqual(status, "ok")
+        for exc in df_enhanced["exception_summary"]:
+            self.assertTrue(pd.isna(exc))
+
+    @patch("requests.post")
+    def test_tabular_enhancer_no_flatten(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "ok"}
+        mock_post.return_value = mock_response
+
+        mapping = {"api_id": "id", "api_name": "name"}
+        enhancer = TabularEnhancer(
+            "http://api.example.com", mapping, flatten_response=False
+        )
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        self.assertEqual(len(df_enhanced), 3)
         self.assertIn("api_response", df_enhanced.columns)
         self.assertIn("exception_summary", df_enhanced.columns)
         for response in df_enhanced["api_response"]:
             self.assertEqual(response, {"status": "ok"})
-        for exc in df_enhanced["exception_summary"]:
-            self.assertTrue(pd.isna(exc))
 
     @patch("requests.post")
     def test_tabular_enhancer_api_error(self, mock_post):
@@ -161,7 +180,6 @@ class TestCore(unittest.TestCase):
         enhancer = TabularEnhancer("http://api.example.com", mapping)
         df_enhanced = enhancer.process_dataframe(df_empty)
         self.assertEqual(len(df_enhanced), 0)
-        self.assertIn("api_response", df_enhanced.columns)
         self.assertIn("exception_summary", df_enhanced.columns)
 
     @patch("requests.get")
@@ -186,13 +204,13 @@ class TestCore(unittest.TestCase):
             auth=None,
             headers=None
         )
-        self.assertEqual(df_enhanced.loc[0, "api_response"], {"forecast": "url"})
+        self.assertEqual(df_enhanced.loc[0, "forecast"], "url")
 
     @patch("requests.get")
     def test_tabular_enhancer_get_params(self, mock_get):
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"data": "ok"}
+        mock_response.json.return_value = {"res": "ok"}
         mock_get.return_value = mock_response
 
         # Test query parameters (no templating in URL)
@@ -209,7 +227,29 @@ class TestCore(unittest.TestCase):
             auth=None,
             headers=None
         )
-        self.assertEqual(df_enhanced.loc[0, "api_response"], {"data": "ok"})
+        self.assertEqual(df_enhanced.loc[0, "res"], "ok")
+
+    @patch("requests.get")
+    def test_tabular_enhancer_data_field_extraction(self, mock_get):
+        """Test that if response contains a 'data' key, it is extracted."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "success",
+            "data": {"temp": 20, "unit": "C"},
+        }
+        mock_get.return_value = mock_response
+
+        mapping = {"q": "name"}
+        enhancer = TabularEnhancer("http://api.example.com", mapping, method="GET")
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        # Should extract 'temp' and 'unit' and NOT 'status'
+        self.assertIn("temp", df_enhanced.columns)
+        self.assertIn("unit", df_enhanced.columns)
+        self.assertNotIn("status", df_enhanced.columns)
+        self.assertEqual(df_enhanced.loc[0, "temp"], 20)
+        self.assertEqual(df_enhanced.loc[0, "unit"], "C")
 
     @patch("requests.get")
     def test_tabular_enhancer_get_combined(self, mock_get):
@@ -235,7 +275,7 @@ class TestCore(unittest.TestCase):
             auth=None,
             headers=None
         )
-        self.assertEqual(df_enhanced.loc[0, "api_response"], {"combined": "ok"})
+        self.assertEqual(df_enhanced.loc[0, "combined"], "ok")
 
     @patch("requests.post")
     def test_tabular_enhancer_order_preservation(self, mock_post):
@@ -250,7 +290,7 @@ class TestCore(unittest.TestCase):
             time.sleep(random.uniform(0.01, 0.05))
             mock_resp = MagicMock()
             mock_resp.status_code = 200
-            mock_resp.json.return_value = {"id": kwargs["json"]["api_id"]}
+            mock_resp.json.return_value = {"api_id": kwargs["json"]["api_id"]}
             return mock_resp
 
         mock_post.side_effect = side_effect
@@ -262,8 +302,8 @@ class TestCore(unittest.TestCase):
         self.assertEqual(
             df_enhanced["id"].tolist(), [str(i).zfill(2) for i in range(20)]
         )
-        for i, row in df_enhanced.iterrows():
-            self.assertEqual(row["api_response"]["id"], row["id"])
+        for _, row in df_enhanced.iterrows():
+            self.assertEqual(row["api_id"], row["id"])
 
 
 if __name__ == "__main__":

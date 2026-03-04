@@ -54,21 +54,31 @@ class TestSQLAlchemy(unittest.TestCase):
         df_enhanced = enhancer.process_dataframe(self.df)
 
         self.assertEqual(len(df_enhanced), 3)
+        self.assertIn("role", df_enhanced.columns)
+        self.assertEqual(df_enhanced.loc[0, "role"], "Admin")
+        self.assertEqual(df_enhanced.loc[1, "role"], "User")
+        self.assertTrue(pd.isna(df_enhanced.loc[2, "role"]))
+        self.assertTrue(pd.isna(df_enhanced.loc[0, "exception_summary"]))
+
+    def test_sqlalchemy_enhancer_orm_no_flatten(self):
+        enhancer = ODBCEnhancer(
+            self.db_url, self.mapping, model=User, flatten_response=False
+        )
+        df_enhanced = enhancer.process_dataframe(self.df)
+
+        self.assertEqual(len(df_enhanced), 3)
         self.assertIn("odbc_response", df_enhanced.columns)
         self.assertEqual(df_enhanced.loc[0, "odbc_response"]["role"], "Admin")
-        self.assertEqual(df_enhanced.loc[1, "odbc_response"]["role"], "User")
-        self.assertTrue(pd.isna(df_enhanced.loc[2, "odbc_response"]))
-        self.assertTrue(pd.isna(df_enhanced.loc[0, "exception_summary"]))
 
     def test_sqlalchemy_enhancer_core_success(self):
         enhancer = ODBCEnhancer(self.db_url, self.mapping, table_name="users")
         df_enhanced = enhancer.process_dataframe(self.df)
 
         self.assertEqual(len(df_enhanced), 3)
-        self.assertIn("odbc_response", df_enhanced.columns)
-        self.assertEqual(df_enhanced.loc[0, "odbc_response"]["role"], "Admin")
-        self.assertEqual(df_enhanced.loc[1, "odbc_response"]["role"], "User")
-        self.assertTrue(pd.isna(df_enhanced.loc[2, "odbc_response"]))
+        self.assertIn("role", df_enhanced.columns)
+        self.assertEqual(df_enhanced.loc[0, "role"], "Admin")
+        self.assertEqual(df_enhanced.loc[1, "role"], "User")
+        self.assertTrue(pd.isna(df_enhanced.loc[2, "role"]))
 
     def test_sqlalchemy_enhancer_error(self):
         # Invalid table name - should raise NoSuchTableError during init

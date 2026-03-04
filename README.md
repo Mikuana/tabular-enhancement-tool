@@ -17,7 +17,8 @@ The **Tabular-Enhancement-Tool (tet)** is designed to streamline this enrichment
 - **Multi-source enhancement**: Fetches data from external JSON-based REST APIs or SQLAlchemy-compatible databases.
 - **High Performance via Multi-threading**: Instead of sequential processing, which can take hours for large files, this tool utilizes a thread pool to handle hundreds of rows concurrently.
 - **Data Integrity and Precision**: The tool instructs Pandas to treat all inputs as strings, ensuring that original data—like ZIP codes with leading zeros or numeric IDs—is **retained exactly** as it appeared in the source.
-- **Append-Only Enhancement**: Your original columns are never modified. The responses are appended as new columns (`api_response` or `odbc_response`, and `exception_summary`), allowing you to preserve the lineage of the raw data while adding new value.
+- **Append-Only Enhancement**: Your original columns are never modified. The responses are appended as new columns, allowing you to preserve the lineage of the raw data while adding new value.
+- **Response Flattening**: By default, the tool expands API/Database response objects into individual columns, making the data immediately available for analysis. For REST APIs, the tool automatically extracts the `data` field from the JSON response if present, focusing on the core payload. This behavior can be disabled if a single nested object is preferred.
 - **Strict Order Preservation**: Even with parallel execution, the output rows are guaranteed to match the order of the input file, making it safe for downstream processes that rely on stable indexing.
 - **Flexible field mapping**: Map DataFrame columns to API payload fields or database query filters.
 - **HTTP GET and POST support**: Choose the appropriate method for your API, with support for URL templating and query parameters.
@@ -50,6 +51,7 @@ tabular-enhancer input_data.csv \
 **Arguments:**
 - `input_file`: Path to your CSV, Excel, TSV, TXT, or Parquet file.
 - `--max_workers`: (Optional) Number of concurrent threads (default: 5).
+- `--no_flatten`: (Optional) Do not expand response objects into individual columns.
 
 **API Options:**
 - `--api_url`: The endpoint where the POST request will be sent.
@@ -236,29 +238,25 @@ tet.save_tabular_file(df_enhanced, "users.csv", suffix="_enriched")
 
 ## Data Output
 
-The output file will contain all original columns exactly as they appeared in the source, plus additional columns based on the enhancement method used.
+The output file will contain all original columns exactly as they appeared in the source, plus additional columns based on the enhancement method used. By default, responses are **flattened** (expanded into individual columns).
 
-### REST API Method
-When using `TabularEnhancer`, the following columns are appended:
-1. `api_response`: The full JSON response from the API for that row, stored as a dictionary/JSON-formatted string.
-2. `exception_summary`: If an error occurs (e.g., 404, 500, Timeout), the error message is captured here.
+### Flattened Output (Default)
+When flattening is enabled, each key in the response dictionary becomes a new column in the resulting file.
 
-**Example:**
-| id | name | api_response | exception_summary |
-|----|------|--------------|-------------------|
-| 01 | Alice| `{"status": "active", "tier": "gold"}` | |
-| 02 | Bob  | | `500 Server Error` |
+**Example (API):**
+| id | name | status | tier | exception_summary |
+|----|------|--------|------|-------------------|
+| 01 | Alice| active | gold | |
+| 02 | Bob  | | | `500 Server Error` |
 
-### SQLAlchemy Method
-When using `ODBCEnhancer` (SQLAlchemy), the following columns are appended:
-1. `odbc_response`: A dictionary representing the database row found, where keys are column names and values are the database values.
-2. `exception_summary`: Captures any database-related errors (e.g., connection issues, invalid queries).
+### Non-Flattened Output
+If you use the `--no_flatten` CLI flag or set `flatten_response=False` in Python, the tool appends a single response column.
 
-**Example:**
-| user_id | email | odbc_response | exception_summary |
-|---------|-------|---------------|-------------------|
-| 101     | a@b.com| `{"id": 101, "role": "admin", "last_login": "2024-01-01"}` | |
-| 102     | c@d.com| | `Table 'users' not found` |
+**REST API Method:**
+Appends `api_response` (JSON string/dict) and `exception_summary`.
+
+**SQLAlchemy Method:**
+Appends `odbc_response` (JSON string/dict) and `exception_summary`.
 
 ## Running Tests
 

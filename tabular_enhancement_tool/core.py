@@ -3,8 +3,9 @@ import requests
 import concurrent.futures
 import logging
 import os
+import re
 from typing import Dict, Any, List, Optional, Type
-from sqlalchemy import create_engine, Table, MetaData
+from sqlalchemy import create_engine, Table, MetaData, select
 from sqlalchemy.orm import DeclarativeBase, Session
 
 # Configure logging
@@ -17,8 +18,9 @@ logger = logging.getLogger(__name__)
 class BaseEnhancer:
     """Base class for enhancing DataFrames asynchronously."""
 
-    def __init__(self, max_workers: int = 5):
+    def __init__(self, max_workers: int = 5, flatten_response: bool = True):
         self.max_workers = max_workers
+        self.flatten_response = flatten_response
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
         """Processes a single row. Must be implemented by subclasses."""
@@ -46,7 +48,26 @@ class BaseEnhancer:
 
         # Add results to DataFrame
         df_enhanced = df.copy()
-        df_enhanced["response"] = responses
+
+        if self.flatten_response:
+            # Expand dictionaries in 'responses' to individual columns
+            # Ensure each response is a dictionary for expansion
+            expanded_responses = []
+            for r in responses:
+                if isinstance(r, dict):
+                    expanded_responses.append(r)
+                else:
+                    # If not a dict (e.g. None due to error), use empty dict
+                    expanded_responses.append({})
+            
+            res_df = pd.DataFrame(expanded_responses, index=df.index)
+            # Add a prefix to avoid collision? 
+            # The issue says "applied to the enhanced file as individual columns"
+            # It doesn't specify prefix. Let's not add prefix unless needed.
+            df_enhanced = pd.concat([df_enhanced, res_df], axis=1)
+        else:
+            df_enhanced["response"] = responses
+            
         df_enhanced["exception_summary"] = exceptions
 
         return df_enhanced
@@ -61,6 +82,7 @@ class TabularEnhancer(BaseEnhancer):
         auth: Any = None,
         headers: Dict[str, str] = None,
         method: str = "POST",
+        flatten_response: bool = True,
     ):
         """
         :param api_url: The URL of the API to call. Can contain placeholders for GET requests.
@@ -70,22 +92,26 @@ class TabularEnhancer(BaseEnhancer):
         :param auth: Optional authentication for the API call (e.g., requests.auth.HTTPBasicAuth).
         :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
         :param method: HTTP method to use (POST or GET).
+        :param flatten_response: Whether to expand the response into individual columns (default: True).
         """
-        super().__init__(max_workers=max_workers)
+        super().__init__(max_workers=max_workers, flatten_response=flatten_response)
         self.api_url = api_url
         self.mapping = mapping
         self.auth = auth
         self.headers = headers
         self.method = method.upper()
+        self._missing_cols_warned = set()
 
     def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
         """Constructs the JSON payload from the row based on mapping."""
         payload = {}
         for api_field, col_name in self.mapping.items():
             if col_name not in row.index:
-                logger.warning(
-                    f"Column '{col_name}' not found in row. Mapping it to 'None'."
-                )
+                if col_name not in self._missing_cols_warned:
+                    logger.warning(
+                        f"Column '{col_name}' not found in row. Mapping it to 'None'."
+                    )
+                    self._missing_cols_warned.add(col_name)
             payload[api_field] = row.get(col_name)
         return payload
 
@@ -102,7 +128,6 @@ class TabularEnhancer(BaseEnhancer):
                 params = payload.copy()
                 try:
                     # Look for placeholders in the URL
-                    import re
                     placeholders = re.findall(r"\{([^{}]+)\}", self.api_url)
                     if placeholders:
                         # Create a dict for formatting and remove those keys from params
@@ -118,11 +143,11 @@ class TabularEnhancer(BaseEnhancer):
                     # If formatting fails, fallback to using all payload as query params
                     url = self.api_url
                     params = payload
-                
+
                 # If params is empty, set it to None for a cleaner request
                 if not params:
                     params = None
-                
+
                 response = requests.get(
                     url,
                     params=params,
@@ -139,19 +164,25 @@ class TabularEnhancer(BaseEnhancer):
                     headers=self.headers,
                 )
             response.raise_for_status()
-            result["response"] = response.json()
+            json_response = response.json()
+
+            # If the response is a dictionary and contains a 'data' key, extract it
+            # This follows the common API pattern where the actual object is in 'data'
+            if isinstance(json_response, dict) and "data" in json_response:
+                result["response"] = json_response["data"]
+            else:
+                result["response"] = json_response
         except Exception as e:
             logger.error(f"Error processing row {index}: {str(e)}")
             result["exception_summary"] = str(e)
         return result
 
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Asynchronously processes each row of the DataFrame (backwards compatibility)."""
+        """Asynchronously processes each row of the DataFrame."""
+        self._missing_cols_warned = set()
         df_enhanced = super().process_dataframe(df)
-        # Rename 'response' back to 'api_response' if it was called api_response before
-        # Actually, to maintain backward compatibility exactly, I should probably keep the column name.
-        # But let's see if I can just rename it in the subclass or use a parameter.
-        df_enhanced = df_enhanced.rename(columns={"response": "api_response"})
+        if not self.flatten_response:
+            df_enhanced = df_enhanced.rename(columns={"response": "api_response"})
         return df_enhanced
 
 
@@ -163,6 +194,7 @@ class ODBCEnhancer(BaseEnhancer):
         model: Optional[Type[DeclarativeBase]] = None,
         table_name: Optional[str] = None,
         max_workers: int = 5,
+        flatten_response: bool = True,
     ):
         """
         :param connection_url: SQLAlchemy connection URL.
@@ -170,8 +202,9 @@ class ODBCEnhancer(BaseEnhancer):
         :param model: Optional SQLAlchemy ORM model class.
         :param table_name: Optional table name to use if model is not provided.
         :param max_workers: Number of threads for parallel processing.
+        :param flatten_response: Whether to expand the response into individual columns (default: True).
         """
-        super().__init__(max_workers=max_workers)
+        super().__init__(max_workers=max_workers, flatten_response=flatten_response)
         self.connection_url = connection_url
         self.mapping = mapping
         self.model = model
@@ -191,8 +224,6 @@ class ODBCEnhancer(BaseEnhancer):
             try:
                 if self.model:
                     # Using ORM Model
-                    from sqlalchemy import select
-
                     filters = {col: row.get(col) for col in self.mapping}
                     stmt = select(self.model).filter_by(**filters)
                     obj = session.execute(stmt).scalars().first()
@@ -203,8 +234,6 @@ class ODBCEnhancer(BaseEnhancer):
                         }
                 elif self._table is not None:
                     # Using SQLAlchemy Core with table name
-                    from sqlalchemy import select
-
                     stmt = select(self._table).where(
                         *[self._table.c[col] == row.get(col) for col in self.mapping]
                     )
@@ -222,7 +251,8 @@ class ODBCEnhancer(BaseEnhancer):
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Asynchronously processes each row of the DataFrame."""
         df_enhanced = super().process_dataframe(df)
-        df_enhanced = df_enhanced.rename(columns={"response": "odbc_response"})
+        if not self.flatten_response:
+            df_enhanced = df_enhanced.rename(columns={"response": "odbc_response"})
         return df_enhanced
 
 
@@ -239,7 +269,7 @@ def read_tabular_file(file_path: str) -> pd.DataFrame:
         # Let Pandas infer the delimiters by setting sep=None and using the python engine.
         return pd.read_csv(file_path, sep=None, engine="python", dtype=str)
     elif ext == ".parquet":
-        return pd.read_parquet(file_path)
+        return pd.read_parquet(file_path).astype(str)
     else:
         raise ValueError(f"Unsupported file format: {ext}")
 

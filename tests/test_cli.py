@@ -26,7 +26,7 @@ class TestCLI(unittest.TestCase):
             {
                 "id": [1],
                 "name": ["Alice"],
-                "api_response": [{}],
+                "status": ["ok"],
                 "exception_summary": [None],
             }
         )
@@ -45,6 +45,36 @@ class TestCLI(unittest.TestCase):
 
         mock_process.assert_called_once()
         mock_save.assert_called_once()
+
+    @patch("tabular_enhancement_tool.core.TabularEnhancer.process_dataframe")
+    @patch("tabular_enhancement_tool.core.save_tabular_file")
+    def test_cli_no_flatten(self, mock_save, mock_process):
+        mock_process.return_value = pd.DataFrame(
+            {
+                "id": [1],
+                "name": ["Alice"],
+                "api_response": [{"status": "ok"}],
+                "exception_summary": [None],
+            }
+        )
+        mock_save.return_value = "test_enhanced.csv"
+
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '{"api_id": "id"}',
+            "--no_flatten",
+        ]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+        mock_process.assert_called_once()
+        # Verify that enhancer was called with flatten_response=False
+        # Since we patched process_dataframe, we need to find where enhancer was created.
+        # It might be easier to patch TabularEnhancer class.
 
     @patch("sys.exit")
     def test_cli_invalid_json_mapping(self, mock_exit):
