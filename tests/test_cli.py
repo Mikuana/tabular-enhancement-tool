@@ -63,6 +63,153 @@ class TestCLI(unittest.TestCase):
                 mock_print.assert_any_call("Error: Invalid JSON mapping string.")
                 mock_exit.assert_called_with(1)
 
+    @patch("sys.exit")
+    def test_cli_both_api_and_db_urls(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--db_url",
+            "sqlite:///:memory:",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: Specify either --api_url or --db_url, not both.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_no_urls(self, mock_exit):
+        test_args = ["cli.py", self.csv_path]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: One of --api_url or --db_url is required.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_api_no_mapping(self, mock_exit):
+        test_args = ["cli.py", self.csv_path, "--api_url", "http://api.example.com"]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --mapping is required for API enhancement.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_api_mapping_not_dict(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '["not", "a", "dict"]',
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --mapping must be a JSON object for API enhancement.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_auth_basic_missing_creds(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '{"a": "b"}',
+            "--auth_type",
+            "basic",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --auth_user and --auth_pass are required for basic auth.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_auth_bearer_missing_token(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '{"a": "b"}',
+            "--auth_type",
+            "bearer",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --auth_token is required for bearer auth.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_auth_apikey_missing_token(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '{"a": "b"}',
+            "--auth_type",
+            "apikey",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --auth_token is required for apikey auth.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_db_no_table(self, mock_exit):
+        test_args = ["cli.py", self.csv_path, "--db_url", "sqlite:///:memory:"]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --table_name is required for SQLAlchemy enhancement.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_db_mapping_not_list(self, mock_exit):
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--db_url",
+            "sqlite:///:memory:",
+            "--table_name",
+            "users",
+            "--mapping",
+            '{"not": "a list"}',
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: --mapping must be a JSON list for SQLAlchemy enhancement.")
+                mock_exit.assert_called_with(1)
+
+    @patch("sys.exit")
+    def test_cli_input_file_not_found(self, mock_exit):
+        test_args = [
+            "cli.py",
+            "non_existent.csv",
+            "--api_url",
+            "http://api.example.com",
+            "--mapping",
+            '{"a": "b"}',
+        ]
+        with patch.object(sys, "argv", test_args):
+            with patch("builtins.print") as mock_print:
+                main()
+                mock_print.assert_any_call("Error: File non_existent.csv not found.")
+                mock_exit.assert_called_with(1)
+
     @patch("tabular_enhancement_tool.core.TabularEnhancer")
     @patch("tabular_enhancement_tool.core.read_tabular_file")
     @patch("tabular_enhancement_tool.core.save_tabular_file")
@@ -149,6 +296,33 @@ class TestCLI(unittest.TestCase):
 
         args, kwargs = mock_enhancer_cls.call_args
         self.assertEqual(kwargs["headers"], {"X-Custom-Key": "my_key"})
+
+
+    @patch("tabular_enhancement_tool.core.ODBCEnhancer")
+    @patch("tabular_enhancement_tool.core.read_tabular_file")
+    @patch("tabular_enhancement_tool.core.save_tabular_file")
+    def test_cli_sqlalchemy_execution(self, mock_save, mock_read, mock_enhancer_cls):
+        mock_read.return_value = pd.DataFrame({"id": [1]})
+        mock_enhancer = MagicMock()
+        mock_enhancer_cls.return_value = mock_enhancer
+        mock_enhancer.process_dataframe.return_value = pd.DataFrame({"id": [1], "odbc_response": [{}], "exception_summary": [None]})
+        mock_save.return_value = "test_sql_enhanced.csv"
+
+        test_args = [
+            "cli.py",
+            self.csv_path,
+            "--db_url",
+            "sqlite:///:memory:",
+            "--table_name",
+            "users",
+            "--mapping",
+            '["id"]',
+        ]
+        with patch.object(sys, "argv", test_args):
+            main()
+
+        mock_enhancer_cls.assert_called_once()
+        mock_save.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import unittest
 import pandas as pd
 import os
+from unittest.mock import patch, MagicMock
 from sqlalchemy import Column, String, create_engine
 from sqlalchemy.orm import DeclarativeBase
 from tabular_enhancement_tool.core import ODBCEnhancer
@@ -75,6 +76,35 @@ class TestSQLAlchemy(unittest.TestCase):
 
         with self.assertRaises(NoSuchTableError):
             ODBCEnhancer(self.db_url, self.mapping, table_name="non_existent")
+
+    def test_sqlalchemy_enhancer_row_error(self):
+        # Test exception handling in _process_row
+        enhancer = ODBCEnhancer(self.db_url, self.mapping, model=User)
+        # Mock Session to raise exception during execution
+        # We need the mock to NOT raise when called, but when used as context manager or inside
+        mock_session_obj = MagicMock()
+        # Mock the __enter__ method to return a mock session, then mock its execute to fail
+        mock_session_obj.__enter__.return_value = mock_session_obj
+        mock_session_obj.execute.side_effect = Exception("Database error")
+        with patch("tabular_enhancement_tool.core.Session", return_value=mock_session_obj):
+            res = enhancer._process_row(0, self.df.iloc[0])
+            self.assertEqual(res["exception_summary"], "Database error")
+            self.assertIsNone(res["response"])
+
+    def test_sqlalchemy_enhancer_no_model_no_table(self):
+        # Trigger ValueError: Either 'model' or 'table_name' must be provided.
+        # We need to bypass the check in __init__ or manually create an object
+        enhancer = ODBCEnhancer(self.db_url, self.mapping, table_name="users")
+        enhancer._table = None
+        enhancer.model = None
+        res = enhancer._process_row(0, self.df.iloc[0])
+        self.assertEqual(res["exception_summary"], "Either 'model' or 'table_name' must be provided.")
+
+    def test_base_enhancer_not_implemented(self):
+        from tabular_enhancement_tool.core import BaseEnhancer
+        base = BaseEnhancer()
+        with self.assertRaises(NotImplementedError):
+            base._process_row(0, pd.Series())
 
 
 if __name__ == "__main__":
