@@ -9,7 +9,7 @@ def main():
         description="Process tabular data and enhance it via API or ODBC."
     )
     parser.add_argument(
-        "input_file", help="Path to the input tabular file (CSV, Excel, TSV, TXT)"
+        "input_file", help="Path to the input tabular file (CSV, Excel, TSV, TXT, Parquet)"
     )
 
     # API arguments

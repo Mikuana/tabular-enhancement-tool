@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-A Python package for asynchronously enhancing tabular files (CSV, Excel, TSV, TXT) by calling external APIs for each row.
+A Python package for asynchronously enhancing tabular files (CSV, Excel, TSV, TXT, Parquet) by calling external APIs for each row.
 
 ## Why Tabular-Enhancement-Tool?
 
@@ -47,7 +47,7 @@ tabular-enhancer input_data.csv \
 ```
 
 **Arguments:**
-- `input_file`: Path to your CSV, Excel, TSV, or TXT file.
+- `input_file`: Path to your CSV, Excel, TSV, TXT, or Parquet file.
 - `--max_workers`: (Optional) Number of concurrent threads (default: 5).
 
 **API Options:**

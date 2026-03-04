@@ -194,6 +194,8 @@ def read_tabular_file(file_path: str) -> pd.DataFrame:
     elif ext == ".txt":
         # Let Pandas infer the delimiters by setting sep=None and using the python engine.
         return pd.read_csv(file_path, sep=None, engine="python", dtype=str)
+    elif ext == ".parquet":
+        return pd.read_parquet(file_path)
     else:
         raise ValueError(f"Unsupported file format: {ext}")
 
@@ -212,6 +214,8 @@ def save_tabular_file(df: pd.DataFrame, original_path: str, suffix: str = "_enha
     elif ext == ".txt":
         # For saving .txt, default to tab-separated (similar to .tsv)
         df.to_csv(output_path, sep="\t", index=False)
+    elif ext == ".parquet":
+        df.to_parquet(output_path, index=False)
     else:
         raise ValueError(f"Unsupported file format: {ext}")
 

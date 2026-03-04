@@ -9,6 +9,7 @@ setup(
         "requests",
         "openpyxl",
         "sqlalchemy",
+        "pyarrow",
     ],
     extras_require={
         "test": ["pytest", "coverage"],

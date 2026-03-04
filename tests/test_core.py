@@ -22,6 +22,7 @@ class TestCore(unittest.TestCase):
         self.txt_comma_path = os.path.join(self.test_dir, "test_comma.txt")
         self.txt_tab_path = os.path.join(self.test_dir, "test_tab.txt")
         self.txt_pipe_path = os.path.join(self.test_dir, "test_pipe.txt")
+        self.parquet_path = os.path.join(self.test_dir, "test.parquet")
 
         self.df = pd.DataFrame(
             {"id": ["01", "02", "03"], "name": ["Alice", "Bob", "Charlie"]}
@@ -32,6 +33,7 @@ class TestCore(unittest.TestCase):
         self.df.to_csv(self.txt_comma_path, index=False)
         self.df.to_csv(self.txt_tab_path, sep="\t", index=False)
         self.df.to_csv(self.txt_pipe_path, sep="|", index=False)
+        self.df.to_parquet(self.parquet_path, index=False)
 
     def tearDown(self):
         if os.path.exists(self.test_dir):
@@ -59,6 +61,10 @@ class TestCore(unittest.TestCase):
 
     def test_read_tabular_file_txt_pipe(self):
         df = read_tabular_file(self.txt_pipe_path)
+        pd.testing.assert_frame_equal(df, self.df)
+
+    def test_read_tabular_file_parquet(self):
+        df = read_tabular_file(self.parquet_path)
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_unsupported(self):
@@ -92,6 +98,13 @@ class TestCore(unittest.TestCase):
         self.assertIn("_new.txt", save_path)
         # We specified it should save as tab-separated
         df_loaded = pd.read_csv(save_path, sep="\t", dtype=str)
+        pd.testing.assert_frame_equal(df_loaded, self.df)
+
+    def test_save_tabular_file_parquet(self):
+        save_path = save_tabular_file(self.df, self.parquet_path, suffix="_new")
+        self.assertTrue(os.path.exists(save_path))
+        self.assertIn("_new.parquet", save_path)
+        df_loaded = pd.read_parquet(save_path).astype(str)
         pd.testing.assert_frame_equal(df_loaded, self.df)
 
     def test_save_tabular_file_unsupported(self):
