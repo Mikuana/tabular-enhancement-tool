@@ -20,4 +20,14 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+# sphinx-autodoc-typehints configuration
+set_type_checking_flag = True
+typehints_fully_qualified = False
+always_document_param_types = True
+typehints_document_rtype = True
+# If you still get warnings about SQLAlchemy forward references, 
+# you can tell the extension to ignore them.
+typehints_defaults = "comma"
+
+# Suppress the specific SQLAlchemy forward reference warning
+suppress_warnings = ["sphinx_autodoc_typehints.forward_reference"]
