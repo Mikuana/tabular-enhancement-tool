@@ -3,7 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/tabular-enhancement-tool/badge/?version=latest)](https://tabular-enhancement-tool.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/Tabular-Enhancement-Tool.svg)](https://badge.fury.io/py/Tabular-Enhancement-Tool)
 [![Python Tests](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml)
-[![codecov](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool)
+[![codecov](https://codecov.io/gh/Mikuana/tabular-enhancement-tool/graph/badge.svg?token=7ISFGBQMKK)](https://codecov.io/gh/Mikuana/tabular-enhancement-tool)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 A Python package for asynchronously enhancing tabular files (CSV, Excel, TSV, TXT, Parquet) by calling external APIs for each row.
