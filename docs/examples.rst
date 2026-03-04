@@ -40,6 +40,35 @@ This example demonstrates how to enrich a CSV file by sending its rows as JSON p
     # 4. Save the results
     tet.save_tabular_file(df_enhanced, "posts_data.csv", suffix="_enhanced")
 
+REST API Enhancement (POST with Authentication)
+-----------------------------------------------
+
+This example demonstrates how to use a Bearer Token with a POST request.
+
+.. code-block:: python
+
+    import tabular_enhancement_tool as tet
+
+    # 1. Read the tabular file
+    df = tet.read_tabular_file("posts_data.csv")
+    
+    # 2. Configure the enhancer with a Bearer Token
+    # Pass the token in the headers
+    token = "your_secret_token_here"
+    api_url = "https://httpbin.org/post"
+    mapping = {"title": "title", "body": "body", "userId": "userId"}
+    
+    enhancer = tet.TabularEnhancer(
+        api_url=api_url,
+        mapping=mapping,
+        method="POST",
+        headers={"Authorization": f"Bearer {token}"},
+        max_workers=5
+    )
+    
+    # 3. Process the DataFrame
+    df_enhanced = enhancer.process_dataframe(df)
+
 REST API Enhancement (GET with URL Templating)
 ----------------------------------------------
 
