@@ -118,6 +118,33 @@ df_enhanced = enhancer.process_dataframe(df)
 tet.save_tabular_file(df_enhanced, "my_data.xlsx")
 ```
 
+### REST API Enhancement (POST Example)
+
+The following example demonstrates how to use the `httpbin.org` public API to simulate posting data from a CSV file.
+
+```python
+import tabular_enhancement_tool as tet
+
+# Load data
+df = tet.read_tabular_file("examples/posts_data.csv")
+
+# HTTPBin API configuration
+api_url = "https://httpbin.org/post"
+mapping = {
+    "title": "title",
+    "body": "body",
+    "userId": "userId"
+}
+
+enhancer = tet.TabularEnhancer(api_url, mapping, method="POST")
+
+# Process
+df_enhanced = enhancer.process_dataframe(df)
+
+# Save
+tet.save_tabular_file(df_enhanced, "examples/posts_data.csv", suffix="_enhanced")
+```
+
 ### REST API Enhancement (GET with URL Templating)
 
 ```python

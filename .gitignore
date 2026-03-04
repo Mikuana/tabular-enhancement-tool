@@ -305,3 +305,4 @@ $RECYCLE.BIN/
 *.msp
 *.lnk
 /examples/cities_coords_weather.csv
+/examples/posts_data_enhanced.csv
