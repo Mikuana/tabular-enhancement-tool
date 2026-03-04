@@ -126,6 +126,10 @@ pytest
 
 If you prefer `unittest`, it is still compatible:
 
-```bash
-python -m unittest discover tests
-```
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Credits
+
+This tool was authored by **Christopher Boyd** and co-authored/developed by **Junie**, an autonomous programmer developed by JetBrains.
