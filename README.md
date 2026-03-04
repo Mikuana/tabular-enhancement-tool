@@ -4,7 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/Tabular-Enhancement-Tool.svg)](https://badge.fury.io/py/Tabular-Enhancement-Tool)
 [![Python Tests](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/Junie/Tabular-Enhancement-Tool)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 A Python package for asynchronously enhancing tabular files (CSV, Excel, TSV, TXT) by calling external APIs for each row.
 
@@ -200,7 +200,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Development and CI/CD
 
-- **Testing**: Run `pytest` locally or check the "Python Tests" GitHub Action.
+- **Linting & Formatting**: Ruff is used to maintain high code quality and consistent style.
 - **Documentation**: Managed by Sphinx and hosted on Read the Docs.
 - **Publishing**: The `main` branch is automatically built and published to PyPI on every push. **Note**: Remember to bump the version in `setup.py` and `tabular_enhancement_tool/__init__.py` before pushing to `main`.
 

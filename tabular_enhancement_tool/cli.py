@@ -118,7 +118,7 @@ def main():
             headers=headers,
         )
     else:
-        print(f"Enhancing data using SQLAlchemy...")
+        print("Enhancing data using SQLAlchemy...")
         enhancer = tet.ODBCEnhancer(
             args.db_url,
             mapping,

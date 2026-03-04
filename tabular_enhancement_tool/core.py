@@ -1,13 +1,11 @@
 import pandas as pd
 import requests
 import concurrent.futures
-import threading
-import json
 import logging
 import os
-from typing import Callable, Dict, Any, List, Optional, Type
-from sqlalchemy import create_engine, text, Table, MetaData
-from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
+from typing import Dict, Any, List, Optional, Type
+from sqlalchemy import create_engine, Table, MetaData
+from sqlalchemy.orm import DeclarativeBase, Session
 
 # Configure logging
 logging.basicConfig(

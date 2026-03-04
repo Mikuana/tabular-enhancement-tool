@@ -2,7 +2,6 @@ import unittest
 import pandas as pd
 import os
 import shutil
-import numpy as np
 from unittest.mock import patch, MagicMock
 from tabular_enhancement_tool.core import (
     TabularEnhancer,
