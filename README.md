@@ -209,6 +209,31 @@ enhancer = tet.ODBCEnhancer("sqlite:///mydb.db", mapping=["id"], model=User)
 df_enhanced = enhancer.process_dataframe(df)
 ```
 
+### SQLAlchemy Database Enhancement (SQLite Example)
+
+This example shows how to use the `ODBCEnhancer` with a SQLite database to enrich a CSV file.
+
+```python
+import tabular_enhancement_tool as tet
+
+# Load data
+df = tet.read_tabular_file("users.csv")
+
+# SQLite connection URL
+db_url = "sqlite:///company_data.db"
+
+# Match by 'email' and fetch related columns from the 'employees' table
+enhancer = tet.ODBCEnhancer(
+    connection_url=db_url,
+    mapping=["email"],
+    table_name="employees"
+)
+
+# Process and save
+df_enhanced = enhancer.process_dataframe(df)
+tet.save_tabular_file(df_enhanced, "users.csv", suffix="_enriched")
+```
+
 ## Data Output
 
 The output file will contain all original columns exactly as they appeared in the source, plus additional columns based on the enhancement method used.
