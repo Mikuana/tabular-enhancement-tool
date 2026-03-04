@@ -286,6 +286,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Database files
+*.db
+*.sqlite3
+
 # OS generated files
 Thumbs.db
 Thumbs.db:encryptable

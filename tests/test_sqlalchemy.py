@@ -19,7 +19,8 @@ class User(Base):
 
 class TestSQLAlchemy(unittest.TestCase):
     def setUp(self):
-        self.db_url = "sqlite:///test_sql.db"
+        self.db_path = os.path.join(os.path.dirname(__file__), "test_sql.db")
+        self.db_url = f"sqlite:///{self.db_path}"
         self.engine = create_engine(self.db_url)
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
@@ -41,9 +42,9 @@ class TestSQLAlchemy(unittest.TestCase):
 
     def tearDown(self):
         self.engine.dispose()
-        if os.path.exists("test_sql.db"):
+        if os.path.exists(self.db_path):
             try:
-                os.remove("test_sql.db")
+                os.remove(self.db_path)
             except Exception:
                 pass
 
