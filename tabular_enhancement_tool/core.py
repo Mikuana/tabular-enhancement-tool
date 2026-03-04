@@ -5,7 +5,9 @@ import threading
 import json
 import logging
 import os
-from typing import Callable, Dict, Any, List
+from typing import Callable, Dict, Any, List, Optional, Type
+from sqlalchemy import create_engine, text, Table, MetaData
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
 
 # Configure logging
 logging.basicConfig(
@@ -14,54 +16,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class TabularEnhancer:
-    def __init__(
-        self,
-        api_url: str,
-        mapping: Dict[str, str],
-        max_workers: int = 5,
-        auth: Any = None,
-        headers: Dict[str, str] = None,
-    ):
-        """
-        :param api_url: The URL of the API to call.
-        :param mapping: Dictionary mapping API field names to DataFrame column names.
-                        Example: {'user_id': 'id', 'user_name': 'name'}
-        :param max_workers: Number of threads for parallel processing.
-        :param auth: Optional authentication for the API call (e.g., requests.auth.HTTPBasicAuth).
-        :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
-        """
-        self.api_url = api_url
-        self.mapping = mapping
-        self.max_workers = max_workers
-        self.auth = auth
-        self.headers = headers
+class BaseEnhancer:
+    """Base class for enhancing DataFrames asynchronously."""
 
-    def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
-        """Constructs the JSON payload from the row based on mapping."""
-        payload = {}
-        for api_field, col_name in self.mapping.items():
-            payload[api_field] = row.get(col_name)
-        return payload
+    def __init__(self, max_workers: int = 5):
+        self.max_workers = max_workers
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
-        """Processes a single row: calls API and handles exceptions."""
-        result = {"index": index, "api_response": None, "exception_summary": None}
-        try:
-            payload = self._prepare_payload(row)
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                timeout=10,
-                auth=self.auth,
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            result["api_response"] = response.json()
-        except Exception as e:
-            logger.error(f"Error processing row {index}: {str(e)}")
-            result["exception_summary"] = str(e)
-        return result
+        """Processes a single row. Must be implemented by subclasses."""
+        raise NotImplementedError
 
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Asynchronously processes each row of the DataFrame."""
@@ -80,14 +43,144 @@ class TabularEnhancer:
                 results[res["index"]] = res
 
         # Extract responses and exceptions in the original order
-        api_responses = [r["api_response"] for r in results]
+        responses = [r["response"] for r in results]
         exceptions = [r["exception_summary"] for r in results]
 
         # Add results to DataFrame
         df_enhanced = df.copy()
-        df_enhanced["api_response"] = api_responses
+        df_enhanced["response"] = responses
         df_enhanced["exception_summary"] = exceptions
 
+        return df_enhanced
+
+
+class TabularEnhancer(BaseEnhancer):
+    def __init__(
+        self,
+        api_url: str,
+        mapping: Dict[str, str],
+        max_workers: int = 5,
+        auth: Any = None,
+        headers: Dict[str, str] = None,
+    ):
+        """
+        :param api_url: The URL of the API to call.
+        :param mapping: Dictionary mapping API field names to DataFrame column names.
+                        Example: {'user_id': 'id', 'user_name': 'name'}
+        :param max_workers: Number of threads for parallel processing.
+        :param auth: Optional authentication for the API call (e.g., requests.auth.HTTPBasicAuth).
+        :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
+        """
+        super().__init__(max_workers=max_workers)
+        self.api_url = api_url
+        self.mapping = mapping
+        self.auth = auth
+        self.headers = headers
+
+    def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
+        """Constructs the JSON payload from the row based on mapping."""
+        payload = {}
+        for api_field, col_name in self.mapping.items():
+            payload[api_field] = row.get(col_name)
+        return payload
+
+    def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
+        """Processes a single row: calls API and handles exceptions."""
+        result = {"index": index, "response": None, "exception_summary": None}
+        try:
+            payload = self._prepare_payload(row)
+            response = requests.post(
+                self.api_url,
+                json=payload,
+                timeout=10,
+                auth=self.auth,
+                headers=self.headers,
+            )
+            response.raise_for_status()
+            result["response"] = response.json()
+        except Exception as e:
+            logger.error(f"Error processing row {index}: {str(e)}")
+            result["exception_summary"] = str(e)
+        return result
+
+    def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Asynchronously processes each row of the DataFrame (backwards compatibility)."""
+        df_enhanced = super().process_dataframe(df)
+        # Rename 'response' back to 'api_response' if it was called api_response before
+        # Actually, to maintain backward compatibility exactly, I should probably keep the column name.
+        # But let's see if I can just rename it in the subclass or use a parameter.
+        df_enhanced = df_enhanced.rename(columns={"response": "api_response"})
+        return df_enhanced
+
+
+class ODBCEnhancer(BaseEnhancer):
+    def __init__(
+        self,
+        connection_url: str,
+        mapping: List[str],
+        model: Optional[Type[DeclarativeBase]] = None,
+        table_name: Optional[str] = None,
+        max_workers: int = 5,
+    ):
+        """
+        :param connection_url: SQLAlchemy connection URL.
+        :param mapping: List of column names to be used as filters in the query.
+        :param model: Optional SQLAlchemy ORM model class.
+        :param table_name: Optional table name to use if model is not provided.
+        :param max_workers: Number of threads for parallel processing.
+        """
+        super().__init__(max_workers=max_workers)
+        self.connection_url = connection_url
+        self.mapping = mapping
+        self.model = model
+        self.table_name = table_name
+        self.engine = create_engine(self.connection_url)
+        self._metadata = MetaData()
+        self._table = None
+        if self.table_name:
+            self._table = Table(
+                self.table_name, self._metadata, autoload_with=self.engine
+            )
+
+    def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
+        """Processes a single row: executes SQL query using SQLAlchemy and handles exceptions."""
+        result = {"index": index, "response": None, "exception_summary": None}
+        with Session(self.engine) as session:
+            try:
+                if self.model:
+                    # Using ORM Model
+                    from sqlalchemy import select
+
+                    filters = {col: row.get(col) for col in self.mapping}
+                    stmt = select(self.model).filter_by(**filters)
+                    obj = session.execute(stmt).scalars().first()
+                    if obj:
+                        # Convert model instance to dict
+                        result["response"] = {
+                            c.name: getattr(obj, c.name) for c in obj.__table__.columns
+                        }
+                elif self._table is not None:
+                    # Using SQLAlchemy Core with table name
+                    from sqlalchemy import select
+
+                    stmt = select(self._table).where(
+                        *[self._table.c[col] == row.get(col) for col in self.mapping]
+                    )
+                    row_res = session.execute(stmt).first()
+                    if row_res:
+                        result["response"] = dict(row_res._mapping)
+                else:
+                    raise ValueError("Either 'model' or 'table_name' must be provided.")
+
+            except Exception as e:
+                logger.error(f"Error processing row {index}: {str(e)}")
+                result["exception_summary"] = str(e)
+        return result
+
+    def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Asynchronously processes each row of the DataFrame."""
+        df_enhanced = super().process_dataframe(df)
+        df_enhanced = df_enhanced.rename(columns={"response": "odbc_response"})
         return df_enhanced
 
 

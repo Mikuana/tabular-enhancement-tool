@@ -8,6 +8,7 @@ setup(
         "pandas",
         "requests",
         "openpyxl",
+        "sqlalchemy",
     ],
     extras_require={
         "test": ["pytest", "coverage"],
