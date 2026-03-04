@@ -243,7 +243,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 - **Linting & Formatting**: Ruff is used to maintain high code quality and consistent style.
 - **Documentation**: Managed by Sphinx and hosted on [Read the Docs](https://tabular-enhancement-tool.readthedocs.io/en/latest/). For more detailed examples and API documentation, please visit the official documentation site.
-- **Publishing**: The `main` branch is automatically built and published to PyPI on every push. **Note**: Remember to bump the version in `setup.py` and `tabular_enhancement_tool/__init__.py` before pushing to `main`.
 
 ## Credits
 
