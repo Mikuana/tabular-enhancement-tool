@@ -306,3 +306,4 @@ $RECYCLE.BIN/
 *.lnk
 /examples/cities_coords_weather.csv
 /examples/posts_data_enhanced.csv
+/examples/users_to_enrich_enriched.csv
