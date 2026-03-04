@@ -2,7 +2,6 @@
 
 [![Documentation Status](https://readthedocs.org/projects/tabular-enhancement-tool/badge/?version=latest)](https://tabular-enhancement-tool.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/Tabular-Enhancement-Tool.svg)](https://badge.fury.io/py/Tabular-Enhancement-Tool)
-[![Python Tests](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Junie/Tabular-Enhancement-Tool/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/Mikuana/tabular-enhancement-tool/graph/badge.svg?token=7ISFGBQMKK)](https://codecov.io/gh/Mikuana/tabular-enhancement-tool)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
