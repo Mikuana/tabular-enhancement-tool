@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
-from unittest.mock import patch, MagicMock
+
 from tabular_enhancement_tool.core import TabularEnhancer
 
 
@@ -71,7 +73,8 @@ class TestComplexNestedMapping(unittest.TestCase):
                 ]
             }
         }
-        # In this case mapping is using fixed integers for field, but tet treats strings as column names if they exist.
+        # mapping fixed integers for field
+        # but tet treats strings as columns if they exist.
         df = pd.DataFrame({"v1": ["val1"], "v2": ["val2"]})
 
         enhancer = TabularEnhancer("http://api.com", mapping, method="POST")

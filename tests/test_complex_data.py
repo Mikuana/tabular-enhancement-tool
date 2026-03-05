@@ -1,12 +1,12 @@
-import unittest
-import pandas as pd
 import os
 import shutil
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+
 from tabular_enhancement_tool.core import (
     TabularEnhancer,
-    read_tabular_file,
-    save_tabular_file,
 )
 
 
@@ -49,7 +49,9 @@ class TestComplexData(unittest.TestCase):
         df_titanic.to_csv(csv_path, index=False)
 
         # Test reading
-        df_loaded = read_tabular_file(csv_path)
+        enhancer = TabularEnhancer(file_path=csv_path)
+        df_loaded = enhancer.read()
+        self.assertEqual(enhancer.sep, ",")
         # All columns should be strings (object or string dtype in Pandas 3)
         for col in df_loaded.columns:
             self.assertTrue(
@@ -85,13 +87,16 @@ class TestComplexData(unittest.TestCase):
         xlsx_path = os.path.join(self.test_dir, "iris.xlsx")
         df_iris.to_excel(xlsx_path, index=False)
 
-        df_loaded = read_tabular_file(xlsx_path)
+        enhancer = TabularEnhancer(file_path=xlsx_path)
+        df_loaded = enhancer.read()
+        self.assertIsNone(enhancer.sep)
         # Check that floating points were not coerced to floats but kept as strings
         self.assertEqual(df_loaded.loc[0, "sepal_length"], "5.1")
 
         # Test saving back
-        new_path = save_tabular_file(df_loaded, xlsx_path, suffix="_new")
-        df_reloaded = read_tabular_file(new_path)
+        new_path = enhancer.save(suffix="_new")
+        enhancer_reloaded = TabularEnhancer(file_path=new_path)
+        df_reloaded = enhancer_reloaded.read()
         pd.testing.assert_frame_equal(df_loaded, df_reloaded)
 
     def test_unicode_and_special_chars(self):
@@ -106,7 +111,9 @@ class TestComplexData(unittest.TestCase):
         tsv_path = os.path.join(self.test_dir, "unicode.tsv")
         df.to_csv(tsv_path, sep="\t", index=False)
 
-        df_loaded = read_tabular_file(tsv_path)
+        enhancer = TabularEnhancer(file_path=tsv_path)
+        df_loaded = enhancer.read()
+        self.assertEqual(enhancer.sep, "\t")
         self.assertEqual(df_loaded.loc[0, "text"], "Héllo World")
         self.assertEqual(df_loaded.loc[1, "text"], "Ω Mega")
         self.assertEqual(df_loaded.loc[0, "mixed"], "007")

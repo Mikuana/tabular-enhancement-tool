@@ -1,10 +1,12 @@
-import pandas as pd
-import requests
 import concurrent.futures
 import logging
 import os
 import re
-from typing import Dict, Any
+from pathlib import Path
+from typing import Any, Dict, Union
+
+import pandas as pd
+import requests
 
 # Configure logging
 logging.basicConfig(
@@ -80,8 +82,9 @@ class BaseEnhancer:
 class TabularEnhancer(BaseEnhancer):
     def __init__(
         self,
-        api_url: str,
-        mapping: Dict[str, str],
+        api_url: str = None,
+        mapping: Dict[str, Any] = None,
+        file_path: Union[str, Path] = None,
         max_workers: int = 5,
         auth: Any = None,
         headers: Dict[str, str] = None,
@@ -90,15 +93,21 @@ class TabularEnhancer(BaseEnhancer):
         response_column_name: str = "api_response",
     ):
         """
-        :param api_url: The URL of the API to call. Can contain placeholders for GET requests.
+        :param api_url: The URL of the API to call.
+                        Can contain placeholders for GET requests.
         :param mapping: Dictionary mapping API field names to DataFrame column names.
                         Example: {'user_id': 'id', 'user_name': 'name'}
+        :param file_path: Path to the tabular file to process.
         :param max_workers: Number of threads for parallel processing.
-        :param auth: Optional authentication for the API call (e.g., requests.auth.HTTPBasicAuth).
-        :param headers: Optional custom headers for the API call (e.g., for API Key or Bearer Token).
+        :param auth: Optional authentication for the API call
+                     (e.g., requests.auth.HTTPBasicAuth).
+        :param headers: Optional custom headers for the API call
+                        (e.g., for API Key or Bearer Token).
         :param method: HTTP method to use (POST or GET).
-        :param flatten_response: Whether to expand the response into individual columns (default: True).
-        :param response_column_name: Name of the response column when flattening is disabled (default: 'api_response').
+        :param flatten_response: Whether to expand the response into
+                                 individual columns (default: True).
+        :param response_column_name: Name of the response column when flattening
+                                     is disabled (default: 'api_response').
         """
         super().__init__(
             max_workers=max_workers,
@@ -109,8 +118,100 @@ class TabularEnhancer(BaseEnhancer):
         self.mapping = mapping
         self.auth = auth
         self.headers = headers
-        self.method = method.upper()
+        self.method = method.upper() if method else "POST"
+        self.file_path = str(file_path) if file_path else None
+        self.sep = None
+        self.df = None
         self._missing_cols_warned = set()
+
+    def read(self) -> pd.DataFrame:
+        """
+        Reads the tabular file and detects formatting (e.g., delimiter).
+        """
+        if self.file_path is None:
+            raise ValueError("No file path provided.")
+
+        ext = os.path.splitext(self.file_path)[1].lower()
+        if ext in [".csv", ".tsv", ".txt"]:
+            # Try to detect the delimiter for text files
+            import csv
+
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                sample = f.read(2048)
+                try:
+                    dialect = csv.Sniffer().sniff(sample)
+                    self.sep = dialect.delimiter
+                except Exception:
+                    # Fallback to defaults if sniffing fails
+                    if ext == ".tsv":
+                        self.sep = "\t"
+                    else:
+                        self.sep = ","
+
+            self.df = pd.read_csv(self.file_path, sep=self.sep, dtype=str)
+        elif ext in [".xlsx", ".xls"]:
+            self.df = pd.read_excel(self.file_path, dtype=str)
+        elif ext == ".parquet":
+            self.df = pd.read_parquet(self.file_path).astype(str)
+        else:
+            raise ValueError(f"Unsupported file format: {ext}")
+
+        return self.df
+
+    def enhance(self) -> pd.DataFrame:
+        """
+        Enhances the loaded DataFrame using the configured API.
+        """
+        if self.df is None:
+            raise ValueError("No data loaded. Call read() first.")
+
+        if self.api_url is None or self.mapping is None:
+            raise ValueError("API URL and mapping must be configured.")
+
+        self.df = self.process_dataframe(self.df)
+        return self.df
+
+    def save(self, suffix: str = "_enhanced") -> str:
+        """Saves the DataFrame to the same format as the original file.
+
+        :param suffix: Suffix to append to the output filename.
+        """
+        if self.df is None:
+            raise ValueError("No data to save. Call read() and enhance() first.")
+
+        if self.file_path is None:
+            raise ValueError("No file path provided for saving.")
+
+        base, ext = os.path.splitext(self.file_path)
+        output_path = f"{base}{suffix}{ext}"
+
+        # Default parameters for save methods
+        kwargs = {"index": False}
+        if self.sep:
+            kwargs["sep"] = self.sep
+
+        # Map extensions to their save methods and parameters
+        if ext == ".csv":
+            method = self.df.to_csv
+        elif ext in [".xlsx", ".xls"]:
+            method = self.df.to_excel
+        elif ext == ".tsv":
+            method = self.df.to_csv
+            if "sep" not in kwargs:
+                kwargs["sep"] = "\t"
+        elif ext == ".txt":
+            method = self.df.to_csv
+            if "sep" not in kwargs:
+                kwargs["sep"] = ","
+        elif ext == ".parquet":
+            method = self.df.to_parquet
+        else:
+            raise ValueError(f"Unsupported file format: {ext}")
+
+        method(output_path, **kwargs)
+
+        logger.info(f"Enhanced file saved to: {output_path}")
+        return output_path
 
     def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
         """Constructs the JSON payload from the row based on mapping."""
@@ -120,7 +221,8 @@ class TabularEnhancer(BaseEnhancer):
                 if mapping_val not in row.index:
                     if mapping_val not in self._missing_cols_warned:
                         logger.warning(
-                            f"Column '{mapping_val}' not found in row. Mapping it to 'None'."
+                            f"Column '{mapping_val}' not found in row. "
+                            "Mapping it to 'None'."
                         )
                         self._missing_cols_warned.add(mapping_val)
                 return row.get(mapping_val)
@@ -199,44 +301,3 @@ class TabularEnhancer(BaseEnhancer):
         """Asynchronously processes each row of the DataFrame."""
         self._missing_cols_warned = set()
         return super().process_dataframe(df)
-
-
-def read_tabular_file(file_path: str) -> pd.DataFrame:
-    """Reads a tabular file (CSV, Excel, etc.) based on its extension, ensuring all data is read as strings."""
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".csv":
-        return pd.read_csv(file_path, dtype=str)
-    elif ext in [".xlsx", ".xls"]:
-        return pd.read_excel(file_path, dtype=str)
-    elif ext == ".tsv":
-        return pd.read_csv(file_path, sep="\t", dtype=str)
-    elif ext == ".txt":
-        # Let Pandas infer the delimiters by setting sep=None and using the python engine.
-        return pd.read_csv(file_path, sep=None, engine="python", dtype=str)
-    elif ext == ".parquet":
-        return pd.read_parquet(file_path).astype(str)
-    else:
-        raise ValueError(f"Unsupported file format: {ext}")
-
-
-def save_tabular_file(df: pd.DataFrame, original_path: str, suffix: str = "_enhanced"):
-    """Saves the DataFrame to the same format as the original file."""
-    base, ext = os.path.splitext(original_path)
-    output_path = f"{base}{suffix}{ext}"
-
-    if ext == ".csv":
-        df.to_csv(output_path, index=False)
-    elif ext in [".xlsx", ".xls"]:
-        df.to_excel(output_path, index=False)
-    elif ext == ".tsv":
-        df.to_csv(output_path, sep="\t", index=False)
-    elif ext == ".txt":
-        # For saving .txt, default to tab-separated (similar to .tsv)
-        df.to_csv(output_path, sep="\t", index=False)
-    elif ext == ".parquet":
-        df.to_parquet(output_path, index=False)
-    else:
-        raise ValueError(f"Unsupported file format: {ext}")
-
-    logger.info(f"Enhanced file saved to: {output_path}")
-    return output_path

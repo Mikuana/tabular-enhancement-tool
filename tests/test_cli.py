@@ -1,9 +1,11 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
 import os
-import pandas as pd
 import shutil
+import sys
+import unittest
+from unittest.mock import patch
+
+import pandas as pd
+
 from tabular_enhancement_tool.cli import main
 
 
@@ -19,18 +21,11 @@ class TestCLI(unittest.TestCase):
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
 
-    @patch("tabular_enhancement_tool.core.TabularEnhancer.process_dataframe")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_basic_execution(self, mock_save, mock_process):
-        mock_process.return_value = pd.DataFrame(
-            {
-                "id": [1],
-                "name": ["Alice"],
-                "status": ["ok"],
-                "exception_summary": [None],
-            }
-        )
-        mock_save.return_value = "test_enhanced.csv"
+    @patch("tabular_enhancement_tool.core.TabularEnhancer")
+    def test_cli_basic_execution(self, mock_enhancer_cls):
+        mock_enhancer = mock_enhancer_cls.return_value
+        mock_enhancer.read.return_value = pd.DataFrame({"id": [1], "name": ["Alice"]})
+        mock_enhancer.save.return_value = "test_enhanced.csv"
 
         test_args = [
             "cli.py",
@@ -43,21 +38,14 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             main()
 
-        mock_process.assert_called_once()
-        mock_save.assert_called_once()
+        mock_enhancer.enhance.assert_called_once()
+        mock_enhancer.save.assert_called_once()
 
-    @patch("tabular_enhancement_tool.core.TabularEnhancer.process_dataframe")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_no_flatten(self, mock_save, mock_process):
-        mock_process.return_value = pd.DataFrame(
-            {
-                "id": [1],
-                "name": ["Alice"],
-                "api_response": [{"status": "ok"}],
-                "exception_summary": [None],
-            }
-        )
-        mock_save.return_value = "test_enhanced.csv"
+    @patch("tabular_enhancement_tool.core.TabularEnhancer")
+    def test_cli_no_flatten(self, mock_enhancer_cls):
+        mock_enhancer = mock_enhancer_cls.return_value
+        mock_enhancer.read.return_value = pd.DataFrame({"id": [1], "name": ["Alice"]})
+        mock_enhancer.save.return_value = "test_enhanced.csv"
 
         test_args = [
             "cli.py",
@@ -71,10 +59,10 @@ class TestCLI(unittest.TestCase):
         with patch.object(sys, "argv", test_args):
             main()
 
-        mock_process.assert_called_once()
-        # Verify that enhancer was called with flatten_response=False
-        # Since we patched process_dataframe, we need to find where enhancer was created.
-        # It might be easier to patch TabularEnhancer class.
+        mock_enhancer.enhance.assert_called_once()
+        # Verify that enhancer was created with flatten_response=False
+        args, kwargs = mock_enhancer_cls.call_args
+        self.assertFalse(kwargs["flatten_response"])
 
     @patch("sys.exit")
     def test_cli_invalid_json_mapping(self, mock_exit):
@@ -193,8 +181,8 @@ class TestCLI(unittest.TestCase):
 
     def test_cli_main_entry(self):
         """Test the if __name__ == '__main__': block in cli.py."""
-        import runpy
         import os
+        import runpy
 
         # Use a real file path for input_file because cli.py checks for it
         dummy_file = "dummy_entry.csv"
@@ -202,31 +190,31 @@ class TestCLI(unittest.TestCase):
             f.write("a,b\n1,2")
 
         try:
-            # We don't patch 'tabular_enhancement_tool.cli.main' because runpy executes the module code
-            # and it will call the ACTUAL main() function defined in that module instance.
-            # Instead, we patch the 'main' that is in the namespace of the module being executed.
+            # We don't patch 'tabular_enhancement_tool.cli.main' because runpy executes
+            # the module code and it will call the ACTUAL main() function defined in
+            # that module instance.
+            # Instead, we patch the 'main' that is in the namespace of the module
+            # being executed.
             with patch(
-                "tabular_enhancement_tool.cli.tet.read_tabular_file"
-            ) as mock_read:
-                mock_read.return_value = pd.DataFrame({"a": [1]})
-                with patch("tabular_enhancement_tool.cli.tet.save_tabular_file"):
-                    with patch(
-                        "tabular_enhancement_tool.cli.tet.TabularEnhancer"
-                    ) as mock_enhancer_cls:
-                        test_args = [
-                            "cli.py",
-                            dummy_file,
-                            "--api_url",
-                            "http://api.com",
-                            "--mapping",
-                            '{"a":"a"}',
-                        ]
-                        with patch("sys.argv", test_args):
-                            runpy.run_module(
-                                "tabular_enhancement_tool.cli", run_name="__main__"
-                            )
-                            # If it reached here without error, the __main__ block executed main()
-                            mock_enhancer_cls.assert_called_once()
+                "tabular_enhancement_tool.core.TabularEnhancer"
+            ) as mock_enhancer_cls:
+                mock_enhancer = mock_enhancer_cls.return_value
+                mock_enhancer.read.return_value = pd.DataFrame({"a": [1]})
+                test_args = [
+                    "cli.py",
+                    dummy_file,
+                    "--api_url",
+                    "http://api.com",
+                    "--mapping",
+                    '{"a":"a"}',
+                ]
+                with patch("sys.argv", test_args):
+                    runpy.run_module(
+                        "tabular_enhancement_tool.cli", run_name="__main__"
+                    )
+                    # If it reached here without error, the __main__ block
+                    # executed main()
+                    mock_enhancer_cls.assert_called_once()
         finally:
             if os.path.exists(dummy_file):
                 os.remove(dummy_file)
@@ -248,12 +236,9 @@ class TestCLI(unittest.TestCase):
                 mock_exit.assert_called_with(1)
 
     @patch("tabular_enhancement_tool.core.TabularEnhancer")
-    @patch("tabular_enhancement_tool.core.read_tabular_file")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_auth_basic(self, mock_save, mock_read, mock_enhancer_cls):
-        mock_read.return_value = pd.DataFrame({"id": [1]})
-        mock_enhancer = MagicMock()
-        mock_enhancer_cls.return_value = mock_enhancer
+    def test_cli_auth_basic(self, mock_enhancer_cls):
+        mock_enhancer = mock_enhancer_cls.return_value
+        mock_enhancer.read.return_value = pd.DataFrame({"id": [1]})
 
         test_args = [
             "cli.py",
@@ -281,12 +266,9 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(kwargs["auth"].password, "pass")
 
     @patch("tabular_enhancement_tool.core.TabularEnhancer")
-    @patch("tabular_enhancement_tool.core.read_tabular_file")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_auth_bearer(self, mock_save, mock_read, mock_enhancer_cls):
-        mock_read.return_value = pd.DataFrame({"id": [1]})
-        mock_enhancer = MagicMock()
-        mock_enhancer_cls.return_value = mock_enhancer
+    def test_cli_auth_bearer(self, mock_enhancer_cls):
+        mock_enhancer = mock_enhancer_cls.return_value
+        mock_enhancer.read.return_value = pd.DataFrame({"id": [1]})
 
         test_args = [
             "cli.py",
@@ -307,12 +289,9 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(kwargs["headers"], {"Authorization": "Bearer my_token"})
 
     @patch("tabular_enhancement_tool.core.TabularEnhancer")
-    @patch("tabular_enhancement_tool.core.read_tabular_file")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_auth_apikey(self, mock_save, mock_read, mock_enhancer_cls):
-        mock_read.return_value = pd.DataFrame({"id": [1]})
-        mock_enhancer = MagicMock()
-        mock_enhancer_cls.return_value = mock_enhancer
+    def test_cli_auth_apikey(self, mock_enhancer_cls):
+        mock_enhancer = mock_enhancer_cls.return_value
+        mock_enhancer.read.return_value = pd.DataFrame({"id": [1]})
 
         test_args = [
             "cli.py",

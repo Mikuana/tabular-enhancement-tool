@@ -1,7 +1,9 @@
 import unittest
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
+
 from tabular_enhancement_tool.core import TabularEnhancer
-from unittest.mock import patch, MagicMock
 
 
 class TestNestedMapping(unittest.TestCase):

@@ -1,12 +1,12 @@
-import unittest
-import pandas as pd
 import os
 import shutil
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+
 from tabular_enhancement_tool.core import (
     TabularEnhancer,
-    read_tabular_file,
-    save_tabular_file,
 )
 
 
@@ -40,68 +40,93 @@ class TestCore(unittest.TestCase):
             shutil.rmtree(self.test_dir)
 
     def test_read_tabular_file_csv(self):
-        df = read_tabular_file(self.csv_path)
+        enhancer = TabularEnhancer(file_path=self.csv_path)
+        df = enhancer.read()
+        self.assertEqual(enhancer.sep, ",")
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_tsv(self):
-        df = read_tabular_file(self.tsv_path)
+        enhancer = TabularEnhancer(file_path=self.tsv_path)
+        df = enhancer.read()
+        self.assertEqual(enhancer.sep, "\t")
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_xlsx(self):
-        df = read_tabular_file(self.xlsx_path)
+        enhancer = TabularEnhancer(file_path=self.xlsx_path)
+        df = enhancer.read()
+        self.assertIsNone(enhancer.sep)
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_txt_comma(self):
-        df = read_tabular_file(self.txt_comma_path)
+        enhancer = TabularEnhancer(file_path=self.txt_comma_path)
+        df = enhancer.read()
+        self.assertEqual(enhancer.sep, ",")
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_txt_tab(self):
-        df = read_tabular_file(self.txt_tab_path)
+        enhancer = TabularEnhancer(file_path=self.txt_tab_path)
+        df = enhancer.read()
+        self.assertEqual(enhancer.sep, "\t")
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_txt_pipe(self):
-        df = read_tabular_file(self.txt_pipe_path)
+        enhancer = TabularEnhancer(file_path=self.txt_pipe_path)
+        df = enhancer.read()
+        self.assertEqual(enhancer.sep, "|")
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_parquet(self):
-        df = read_tabular_file(self.parquet_path)
+        enhancer = TabularEnhancer(file_path=self.parquet_path)
+        df = enhancer.read()
+        self.assertIsNone(enhancer.sep)
         pd.testing.assert_frame_equal(df, self.df)
 
     def test_read_tabular_file_unsupported(self):
         with self.assertRaises(ValueError):
-            read_tabular_file("test.invalid")
+            enhancer = TabularEnhancer(file_path="test.invalid")
+            enhancer.read()
 
     def test_save_tabular_file_csv(self):
-        save_path = save_tabular_file(self.df, self.csv_path, suffix="_new")
+        enhancer = TabularEnhancer(file_path=self.csv_path)
+        enhancer.read()
+        save_path = enhancer.save(suffix="_new")
         self.assertTrue(os.path.exists(save_path))
         self.assertIn("_new.csv", save_path)
         df_loaded = pd.read_csv(save_path, dtype=str)
         pd.testing.assert_frame_equal(df_loaded, self.df)
 
     def test_save_tabular_file_tsv(self):
-        save_path = save_tabular_file(self.df, self.tsv_path, suffix="_new")
+        enhancer = TabularEnhancer(file_path=self.tsv_path)
+        enhancer.read()
+        save_path = enhancer.save(suffix="_new")
         self.assertTrue(os.path.exists(save_path))
         self.assertIn("_new.tsv", save_path)
         df_loaded = pd.read_csv(save_path, sep="\t", dtype=str)
         pd.testing.assert_frame_equal(df_loaded, self.df)
 
     def test_save_tabular_file_xlsx(self):
-        save_path = save_tabular_file(self.df, self.xlsx_path, suffix="_new")
+        enhancer = TabularEnhancer(file_path=self.xlsx_path)
+        enhancer.read()
+        save_path = enhancer.save(suffix="_new")
         self.assertTrue(os.path.exists(save_path))
         self.assertIn("_new.xlsx", save_path)
         df_loaded = pd.read_excel(save_path, dtype=str)
         pd.testing.assert_frame_equal(df_loaded, self.df)
 
     def test_save_tabular_file_txt(self):
-        save_path = save_tabular_file(self.df, self.txt_comma_path, suffix="_new")
+        # Read to get the separator
+        enhancer = TabularEnhancer(file_path=self.txt_comma_path)
+        enhancer.read()
+        save_path = enhancer.save(suffix="_new")
         self.assertTrue(os.path.exists(save_path))
         self.assertIn("_new.txt", save_path)
-        # We specified it should save as tab-separated
-        df_loaded = pd.read_csv(save_path, sep="\t", dtype=str)
+        df_loaded = pd.read_csv(save_path, sep=enhancer.sep, dtype=str)
         pd.testing.assert_frame_equal(df_loaded, self.df)
 
     def test_save_tabular_file_parquet(self):
-        save_path = save_tabular_file(self.df, self.parquet_path, suffix="_new")
+        enhancer = TabularEnhancer(file_path=self.parquet_path)
+        enhancer.read()
+        save_path = enhancer.save(suffix="_new")
         self.assertTrue(os.path.exists(save_path))
         self.assertIn("_new.parquet", save_path)
         df_loaded = pd.read_parquet(save_path).astype(str)
@@ -109,7 +134,8 @@ class TestCore(unittest.TestCase):
 
     def test_save_tabular_file_unsupported(self):
         with self.assertRaises(ValueError):
-            save_tabular_file(self.df, "test.invalid")
+            enhancer = TabularEnhancer(file_path="test.invalid")
+            enhancer.save()
 
     @patch("requests.post")
     def test_tabular_enhancer_success(self, mock_post):
@@ -275,8 +301,8 @@ class TestCore(unittest.TestCase):
         df_large = pd.DataFrame({"id": [str(i).zfill(2) for i in range(20)]})
 
         # Simulate varying response times
-        import time
         import random
+        import time
 
         def side_effect(*args, **kwargs):
             time.sleep(random.uniform(0.01, 0.05))

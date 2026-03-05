@@ -49,26 +49,31 @@ This example demonstrates how to enrich a CSV file by sending its rows as JSON p
         # 1. Path to our sample data
         input_file = "posts_data.csv"
 
-        # 2. Read the tabular file
-        df = tet.read_tabular_file(input_file)
-
-        # 3. HTTPBin API Example (POST)
+        # 2. HTTPBin API Example (POST)
         # This public API echoes back the data sent in the request.
         api_url = "https://httpbin.org/post"
 
         # The mapping defines which CSV columns map to the JSON payload fields
         mapping = {"title": "title", "body": "body", "userId": "userId"}
 
+        # 3. Create the enhancer
         enhancer = tet.TabularEnhancer(
-            api_url=api_url, mapping=mapping, method="POST", max_workers=5
+            file_path=input_file,
+            api_url=api_url,
+            mapping=mapping,
+            method="POST",
+            max_workers=5
         )
 
-        # 4. Process the DataFrame
-        # By default, responses are automatically flattened into separate columns.
-        df_enhanced = enhancer.process_dataframe(df)
+        # 4. Read the tabular file
+        enhancer.read()
 
-        # 5. Save the results
-        tet.save_tabular_file(df_enhanced, input_file, suffix="_enhanced")
+        # 5. Process the data
+        # By default, responses are automatically flattened into separate columns.
+        enhancer.enhance()
+
+        # 6. Save the results
+        enhancer.save(suffix="_enhanced")
 
     if __name__ == "__main__":
         main()
@@ -121,16 +126,14 @@ This example demonstrates how to use a Bearer Token with a POST request.
     import tabular_enhancement_tool as tet
 
     def main():
-        # 1. Read the tabular file
-        df = tet.read_tabular_file("posts_data.csv")
-
-        # 2. Configure the enhancer with a Bearer Token
+        # 1. Configure the enhancer with a Bearer Token
         # Pass the token in the headers
         token = "your_secret_token_here"
         api_url = "https://httpbin.org/post"
         mapping = {"title": "title", "body": "body", "userId": "userId"}
 
         enhancer = tet.TabularEnhancer(
+            file_path="posts_data.csv",
             api_url=api_url,
             mapping=mapping,
             method="POST",
@@ -138,11 +141,10 @@ This example demonstrates how to use a Bearer Token with a POST request.
             max_workers=5
         )
 
-        # 3. Process the DataFrame
-        df_enhanced = enhancer.process_dataframe(df)
-
-        # 4. Save results
-        tet.save_tabular_file(df_enhanced, "posts_data.csv", suffix="_auth")
+        # 2. Read, enhance and save
+        enhancer.read()
+        enhancer.enhance()
+        enhancer.save(suffix="_auth")
 
     if __name__ == "__main__":
         main()
@@ -183,16 +185,14 @@ This example shows how to use GET requests with dynamic URL templating to fetch 
     import tabular_enhancement_tool as tet
 
     def main():
-        # 1. Read data with coordinates (columns: lat, lon)
-        df = tet.read_tabular_file("cities_coords.csv")
-
-        # 2. Configure the NWS API enhancer
+        # 1. Configure the NWS API enhancer
         # The URL template uses {lat} and {lon} placeholders
         api_url = "https://api.weather.gov/points/{lat},{lon}"
         mapping = {"lat": "lat", "lon": "lon"}
         headers = {"User-Agent": "(myweatherapp.com, contact@example.com)"}
 
         enhancer = tet.TabularEnhancer(
+            file_path="cities_coords.csv",
             api_url=api_url,
             mapping=mapping,
             method="GET",
@@ -200,12 +200,13 @@ This example shows how to use GET requests with dynamic URL templating to fetch 
             max_workers=5
         )
 
-        # 3. Process the DataFrame
+        # 2. Process the data
         # The NWS API 'data' field is automatically extracted and flattened.
-        df_enhanced = enhancer.process_dataframe(df)
+        enhancer.read()
+        enhancer.enhance()
 
-        # 4. Save the results
-        tet.save_tabular_file(df_enhanced, "cities_coords.csv", suffix="_weather")
+        # 3. Save the results
+        enhancer.save(suffix="_weather")
 
     if __name__ == "__main__":
         main()

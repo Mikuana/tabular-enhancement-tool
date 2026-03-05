@@ -1,12 +1,23 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(".."))
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
-project = "Tabular-Enhancement-Tool"
-copyright = "2026, Junie"
-author = "Junie"
-release = "0.1.0"
+with open(os.path.abspath("../pyproject.toml"), "rb") as f:
+    pyproject = tomllib.load(f)
+
+project_data = pyproject.get("project", {})
+project = project_data.get("name", "Tabular-Enhancement-Tool")
+author_list = project_data.get("authors", [])
+author = ", ".join([a.get("name", "") for a in author_list if "name" in a])
+release = project_data.get("version", "0.2.2")
+# noinspection PyShadowingBuiltins
+copyright = f"2026, {author}"
+
+sys.path.insert(0, os.path.abspath(".."))
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -31,6 +42,12 @@ myst_enable_extensions = [
     "tasklist",
 ]
 
+myst_url_schemes = ("http", "https", "mailto", "ftp")
+# To fix: WARNING: 'myst' cross-reference target not found: 'LICENSE'
+# We want these to be treated as standard links, not cross-references.
+# Files that are not part of the toctree should be handled as links to files.
+# By default MyST tries to resolve [text](file) as a cross-reference.
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -40,9 +57,11 @@ set_type_checking_flag = True
 typehints_fully_qualified = False
 always_document_param_types = True
 typehints_document_rtype = True
-# If you still get warnings about SQLAlchemy forward references,
+# If you still get warnings about forward references,
 # you can tell the extension to ignore them.
 typehints_defaults = "comma"
 
-# Suppress the specific SQLAlchemy forward reference warning
-suppress_warnings = ["sphinx_autodoc_typehints.forward_reference"]
+# Suppress the specific forward reference warning
+suppress_warnings = [
+    "sphinx_autodoc_typehints.forward_reference",
+]

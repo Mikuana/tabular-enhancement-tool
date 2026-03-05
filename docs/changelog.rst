@@ -3,12 +3,22 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.2 (2026-03-05)
+-------------------
+
+*   Fixed Sphinx build error `[myst.xref_missing]` on GitHub Actions.
+*   Updated `CONTRIBUTING.md` and `README.md` to use absolute URLs for the LICENSE file.
+*   Updated `docs/conf.py` to pull project metadata from `pyproject.toml`.
+
 v0.2.1 (2026-03-05)
 -------------------
 
+*   Unified `TabularDataHandler` and `TabularEnhancer` into a single class for a more streamlined Python API.
+*   Added `read()`, `enhance()`, and `save()` methods to `TabularEnhancer` to support full-lifecycle processing.
+*   Removed deprecated standalone functions (`read_tabular_file`, `save_tabular_file`) and `TabularDataHandler` class.
 *   Added support for nested dictionaries and lists in API mapping for both POST and GET methods.
-*   Updated documentation and README with nested mapping examples.
-*   Achieved 100% test coverage for the core module.
+*   Updated documentation and README with the new unified API and nested mapping examples.
+*   Achieved 100% test coverage for all core modules.
 
 v0.2.0 (2026-03-05)
 -------------------
@@ -16,7 +26,8 @@ v0.2.0 (2026-03-05)
 *   Removed ODBC/SQLAlchemy-based enhancement method.
 *   Focused the package exclusively on REST-based POST and GET methods.
 *   Updated documentation and CLI to remove all database-related references.
-*   Removed `sqlalchemy` dependency from `setup.py`.
+*   Removed `sqlalchemy` dependency.
+*   Removed `setup.py` in favor of `pyproject.toml`.
 
 v0.1.5 (2026-03-04)
 -------------------
