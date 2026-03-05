@@ -7,7 +7,7 @@ name = "Tabular-Enhancement-Tool"
 version = "0.2.1"
 authors = [
     { name = "Christopher Boyd" },
-    { name = "Junie: Autonomous AI agent developer by JetBrains" }
+    { name = "Junie: Autonomous AI agent developed by JetBrains" }
 ]
 description = "A Python package for asynchronously enhancing tabular files via APIs."
 readme = "README.md"
