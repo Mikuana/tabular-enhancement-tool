@@ -21,8 +21,8 @@ After installation, you can run the tool using the ``tet`` command:
 
 **API Options:**
 
-- ``--api_url``: The endpoint where the POST request will be sent.
-- ``--mapping``: A JSON string mapping API payload keys to your file's column names. e.g. ``'{"api_field": "csv_column"}'``.
+- ``--api_url``: (Required) The endpoint where the request will be sent.
+- ``--mapping``: (Required) A JSON string mapping API payload keys to your file's column names. e.g. ``'{"api_field": "csv_column"}'``.
 - ``--method``: (Optional) HTTP method to use (``POST`` or ``GET``, default: ``POST``).
 - ``--auth_type``: (Optional) Authentication type (``basic``, ``bearer``, or ``apikey``).
 - ``--auth_user``: (Optional) Username for ``basic`` auth.
@@ -30,14 +30,8 @@ After installation, you can run the tool using the ``tet`` command:
 - ``--auth_token``: (Optional) Token for ``bearer`` or ``apikey`` auth.
 - ``--auth_header``: (Optional) Custom header for ``apikey`` auth (default: ``X-API-Key``).
 
-**SQLAlchemy Options:**
-
-- ``--db_url``: The SQLAlchemy connection URL to the target database.
-- ``--table_name``: Name of the table to query for enhancement.
-- ``--mapping``: A JSON list of column names in your file to be used as filters (WHERE clause) for the query. e.g. ``'["email_address"]'``.
-
-CLI Usage Examples
-~~~~~~~~~~~~~~~~~~
+CLI Usage Example
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -45,12 +39,6 @@ CLI Usage Examples
    tet input.csv \
        --api_url "https://api.example.com/process" \
        --mapping '{"user_id": "id"}'
-
-   # SQLAlchemy Database Enhancement
-   tet data.xlsx \
-       --db_url "postgresql://user:pass@localhost/dbname" \
-       --table_name "users" \
-       --mapping '["email_address"]'
 
 CLI Authentication Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +66,7 @@ Core Concepts
 ~~~~~~~~~~~~~
 
 All enhancers follow a similar pattern:
-1.  **Initialization**: Configure the source of enhancement (API or Database) and the mapping between your local data and the remote fields.
+1.  **Initialization**: Configure the source of enhancement (API) and the mapping between your local data and the remote fields.
 2.  **Processing**: Call ``process_dataframe(df)`` to start the asynchronous enrichment. This method returns a new DataFrame with the original data plus the new columns.
 3.  **Data Preservation**: All original columns are preserved. New data is appended, and an ``exception_summary`` column is added to help identify any rows that failed to process.
 
@@ -123,43 +111,6 @@ The ``TabularEnhancer`` class is used to enrich data from any REST API that acce
 *   ``flatten_response`` (bool, optional): If ``True`` (default), the JSON response keys are expanded into individual columns. If ``False``, the entire response is stored as a dictionary in a single column.
 *   ``response_column_name`` (str, optional): The name of the column where the raw response is stored if ``flatten_response`` is ``False``.
 
-SQLAlchemy Database Enhancement
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``ODBCEnhancer`` class allows you to enrich your data by querying a relational database. It supports any database compatible with SQLAlchemy (PostgreSQL, MySQL, SQLite, etc.).
-
-.. code-block:: python
-
-   import tabular_enhancement_tool as tet
-
-   # Load data
-   df = tet.read_tabular_file("data.csv")
-
-   # Database Configuration
-   db_url = "postgresql://user:pass@localhost/dbname"
-   mapping = ["ID"] # Columns in df to use as WHERE filters
-   
-   # Create the enhancer
-   enhancer = tet.ODBCEnhancer(
-       connection_url=db_url, 
-       mapping=mapping, 
-       table_name="orders"
-   )
-
-   # Process
-   df_enhanced = enhancer.process_dataframe(df)
-
-   # Save
-   tet.save_tabular_file(df_enhanced, "data.csv", suffix="_enhanced")
-
-**ODBCEnhancer Parameters:**
-
-*   ``connection_url`` (str): A valid SQLAlchemy connection string.
-*   ``mapping`` (list of str): A list of column names from your DataFrame to use as filters for the SQL query (i.e., the ``WHERE`` clause).
-*   ``table_name`` (str, optional): The name of the table to query.
-*   ``model`` (DeclarativeBase, optional): Alternatively, you can provide a SQLAlchemy ORM model class instead of a table name.
-*   ``max_workers`` (int, optional): The number of concurrent database connections/threads. Defaults to ``5``.
-*   ``flatten_response`` (bool, optional): Whether to expand the database row into individual columns.
 
 Utility Functions
 ~~~~~~~~~~~~~~~~~

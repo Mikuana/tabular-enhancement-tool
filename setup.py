@@ -8,7 +8,6 @@ setup(
         "pandas",
         "requests",
         "openpyxl",
-        "sqlalchemy",
         "pyarrow",
         "fastparquet",
     ],
