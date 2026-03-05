@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="Tabular-Enhancement-Tool",
-    version="0.1.3",
+    version="0.1.4",
     packages=find_packages(),
     install_requires=[
         "pandas",
@@ -17,7 +17,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "tabular_enhancement_tool=tabular_enhancement_tool.cli:main",
+            "tet=tabular_enhancement_tool.cli:main",
         ],
     },
     author="Christopher Boyd and co-authored/developed by Junie, an autonomous programmer developed by JetBrains.",
