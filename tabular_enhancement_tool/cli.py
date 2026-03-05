@@ -1,7 +1,8 @@
-from . import core as tet
 import argparse
-import sys
 import os
+import sys
+
+from . import core as tet
 
 
 def main():
@@ -19,7 +20,10 @@ def main():
     api_group.add_argument(
         "--mapping",
         required=True,
-        help='JSON string mapping API fields to DataFrame columns. e.g. \'{"id": "user_id"}\'',
+        help=(
+            "JSON string mapping API fields to DataFrame columns. "
+            'e.g. \'{"id": "user_id"}\''
+        ),
     )
     api_group.add_argument(
         "--auth_type", choices=["basic", "bearer", "apikey"], help="Authentication type"
@@ -48,7 +52,11 @@ def main():
     parser.add_argument(
         "--no_flatten",
         action="store_true",
-        help="Do not expand response objects into individual columns. If used, the response will be stored as a single JSON object in 'api_response'.",
+        help=(
+            "Do not expand response objects into individual columns. "
+            "If used, the response will be stored as a single JSON object in "
+            "'api_response'."
+        ),
     )
 
     args = parser.parse_args()
@@ -97,22 +105,22 @@ def main():
         return sys.exit(1)
 
     print(f"Reading file {args.input_file}...")
-    df = tet.read_tabular_file(args.input_file)
-
-    print(f"Enhancing data using API {args.api_url}...")
     enhancer = tet.TabularEnhancer(
-        args.api_url,
-        mapping,
+        api_url=args.api_url,
+        mapping=mapping,
         max_workers=args.max_workers,
         auth=auth,
         headers=headers,
         method=args.method,
         flatten_response=not args.no_flatten,
+        file_path=args.input_file,
     )
+    enhancer.read()
 
-    df_enhanced = enhancer.process_dataframe(df)
+    print(f"Enhancing data using API {args.api_url}...")
+    enhancer.enhance()
 
-    output_path = tet.save_tabular_file(df_enhanced, args.input_file)
+    output_path = enhancer.save()
     print(f"Done! Enhanced file saved to {output_path}")
 
 

@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
-from unittest.mock import patch, MagicMock
+
 from tabular_enhancement_tool.core import BaseEnhancer, TabularEnhancer
 
 
@@ -61,6 +63,159 @@ class TestCoverageExpansion(unittest.TestCase):
             api_url, params={"id": "1"}, timeout=10, auth=None, headers=None
         )
         self.assertEqual(result["response"], {"status": "ok"})
+
+    def test_read_tabular_file_sniff_failure(self):
+        """Test fallback when Sniffer fails."""
+        import os
+
+        test_file = "test_sniff_fail.txt"
+        with open(test_file, "w") as f:
+            # Provide a sample that is likely to fail sniffing
+            f.write("Just some text")
+        try:
+            # Sniffer might still "find" a delimiter (like space),
+            # so we mock Sniffer.sniff to raise an error.
+            with patch("csv.Sniffer.sniff") as mock_sniff:
+                mock_sniff.side_effect = Exception("Sniff failed")
+                enhancer = TabularEnhancer(file_path=test_file)
+                enhancer.read()
+                self.assertEqual(enhancer.sep, ",")
+
+            # Test .tsv fallback
+            tsv_file = "test_sniff.tsv"
+            with open(tsv_file, "w") as f:
+                f.write("a\tb")
+            try:
+                with patch("csv.Sniffer.sniff") as mock_sniff:
+                    mock_sniff.side_effect = Exception("Sniff failed")
+                    enhancer = TabularEnhancer(file_path=tsv_file)
+                    enhancer.read()
+                    self.assertEqual(enhancer.sep, "\t")
+            finally:
+                if os.path.exists(tsv_file):
+                    os.remove(tsv_file)
+        finally:
+            if os.path.exists(test_file):
+                os.remove(test_file)
+
+    def test_save_tabular_file_tsv_default_sep(self):
+        """Test save for .tsv without explicit sep."""
+        import os
+
+        tsv_path = "test_default.tsv"
+        try:
+            df = pd.DataFrame({"a": ["1"]})
+            enhancer = TabularEnhancer(file_path=tsv_path)
+            enhancer.df = df
+            output_path = enhancer.save()
+            self.assertTrue(os.path.exists(output_path))
+            # Verify it saved with tab
+            with open(output_path, "r") as f:
+                self.assertEqual(
+                    f.read().strip(), "a\n1"
+                )  # No tab if only one column, but let's check sep
+            # If we had two columns:
+            df2 = pd.DataFrame({"a": ["1"], "b": ["2"]})
+            enhancer2 = TabularEnhancer(file_path=tsv_path)
+            enhancer2.df = df2
+            output_path2 = enhancer2.save()
+            with open(output_path2, "r") as f:
+                self.assertIn("\t", f.read())
+        finally:
+            if os.path.exists(tsv_path):
+                os.remove(tsv_path)
+            enhanced = tsv_path.replace(".tsv", "_enhanced.tsv")
+            if os.path.exists(enhanced):
+                os.remove(enhanced)
+
+    def test_save_tabular_file_txt_default_sep(self):
+        """Test save for .txt without explicit sep."""
+        import os
+
+        df = pd.DataFrame({"a": ["1"], "b": ["2"]})
+        txt_path = "test_default.txt"
+        try:
+            enhancer = TabularEnhancer(file_path=txt_path)
+            enhancer.df = df
+            output_path = enhancer.save()
+            self.assertTrue(os.path.exists(output_path))
+            # Verify it saved with comma (default for txt)
+            with open(output_path, "r") as f:
+                self.assertIn(",", f.read())
+        finally:
+            if os.path.exists(txt_path):
+                os.remove(txt_path)
+            enhanced = txt_path.replace(".txt", "_enhanced.txt")
+            if os.path.exists(enhanced):
+                os.remove(enhanced)
+
+    def test_save_tabular_file_unsupported_exception(self):
+        """Test save unsupported format exception."""
+        df = pd.DataFrame({"a": ["1"]})
+        enhancer = TabularEnhancer(file_path="test.invalid_ext")
+        enhancer.df = df
+        with self.assertRaises(ValueError):
+            enhancer.save()
+
+    def test_tabular_enhancer_missing_config_errors(self):
+        """Test error handling in TabularEnhancer."""
+        # No file_path for read
+        enhancer = TabularEnhancer()
+        with self.assertRaises(ValueError):
+            enhancer.read()
+
+        # No df for enhance
+        with self.assertRaises(ValueError):
+            enhancer.enhance()
+
+        # No config for enhance
+        enhancer.df = pd.DataFrame({"a": [1]})
+        with self.assertRaises(ValueError):
+            enhancer.enhance()
+
+        # No df for save
+        enhancer.df = None
+        with self.assertRaises(ValueError):
+            enhancer.save()
+
+        # No file_path for save
+        enhancer.df = pd.DataFrame({"a": [1]})
+        with self.assertRaises(ValueError):
+            enhancer.save()
+
+    def test_tabular_enhancer_full_workflow(self):
+        """Test full workflow using unified TabularEnhancer class."""
+        import os
+
+        test_file = "workflow.csv"
+        df = pd.DataFrame({"id": ["1", "2"]})
+        df.to_csv(test_file, index=False)
+        try:
+            with patch("requests.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.status_code = 200
+                mock_response.json.return_value = {"status": "ok"}
+                mock_post.return_value = mock_response
+
+                enhancer = TabularEnhancer(
+                    file_path=test_file,
+                    api_url="http://api.com",
+                    mapping={"id": "id"},
+                )
+                df_read = enhancer.read()
+                self.assertEqual(len(df_read), 2)
+
+                df_enhanced = enhancer.enhance()
+                self.assertIn("status", df_enhanced.columns)
+
+                save_path = enhancer.save()
+                self.assertTrue(os.path.exists(save_path))
+        finally:
+            if os.path.exists(test_file):
+                os.remove(test_file)
+            enhanced = test_file.replace(".csv", "_enhanced.csv")
+            if os.path.exists(enhanced):
+                os.remove(enhanced)
 
 
 if __name__ == "__main__":
