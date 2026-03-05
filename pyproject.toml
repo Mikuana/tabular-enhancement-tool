@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Tabular-Enhancement-Tool"
+version = "0.2.1"
+authors = [
+    { name = "Christopher Boyd" },
+    { name = "Junie: Autonomous AI agent developer by JetBrains" }
+]
+description = "A Python package for asynchronously enhancing tabular files via APIs."
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pandas",
+    "requests",
+    "openpyxl",
+    "pyarrow",
+    "fastparquet",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "sphinx-autodoc-typehints",
+]
+
+[project.scripts]
+tet = "tabular_enhancement_tool.cli:main"
+
+[tool.ruff]
+line-length = 88
+target-version = "py37"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v"

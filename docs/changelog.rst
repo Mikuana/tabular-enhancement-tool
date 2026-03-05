@@ -16,7 +16,8 @@ v0.2.0 (2026-03-05)
 *   Removed ODBC/SQLAlchemy-based enhancement method.
 *   Focused the package exclusively on REST-based POST and GET methods.
 *   Updated documentation and CLI to remove all database-related references.
-*   Removed `sqlalchemy` dependency from `setup.py`.
+*   Removed `sqlalchemy` dependency.
+*   Removed `setup.py` in favor of `pyproject.toml`.
 
 v0.1.5 (2026-03-04)
 -------------------
