@@ -1,5 +1,5 @@
 FAQ & Troubleshooting
-====================
+=====================
 
 Frequently Asked Questions
 --------------------------
