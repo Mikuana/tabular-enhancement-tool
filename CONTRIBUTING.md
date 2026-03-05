@@ -54,4 +54,4 @@ By participating in this project, you agree to abide by the same standards of pr
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).
+By contributing, you agree that your contributions will be licensed under the project's [MIT License](https://github.com/Mikuana/tabular-enhancement-tool/blob/main/LICENSE).

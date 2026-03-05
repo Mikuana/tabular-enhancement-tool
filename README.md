@@ -41,7 +41,7 @@ Read the docs.   [![Documentation Status](https://readthedocs.org/projects/tabul
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](./LICENSE) for more information.
+Distributed under the MIT License. See [LICENSE](https://github.com/Mikuana/tabular-enhancement-tool/blob/main/LICENSE) for more information.
 
 ## Development and CI/CD
 

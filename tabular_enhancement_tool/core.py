@@ -19,10 +19,10 @@ class BaseEnhancer:
     """Base class for enhancing DataFrames asynchronously."""
 
     def __init__(
-            self,
-            max_workers: int = 5,
-            flatten_response: bool = True,
-            response_column_name: str = "response",
+        self,
+        max_workers: int = 5,
+        flatten_response: bool = True,
+        response_column_name: str = "response",
     ):
         self.max_workers = max_workers
         self.flatten_response = flatten_response
@@ -37,7 +37,7 @@ class BaseEnhancer:
         results = [None] * len(df)
 
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.max_workers
+            max_workers=self.max_workers
         ) as executor:
             future_to_index = {
                 executor.submit(self._process_row, i, row): i
@@ -81,16 +81,16 @@ class BaseEnhancer:
 
 class TabularEnhancer(BaseEnhancer):
     def __init__(
-            self,
-            api_url: str = None,
-            mapping: Dict[str, Any] = None,
-            file_path: Union[str, Path] = None,
-            max_workers: int = 5,
-            auth: Any = None,
-            headers: Dict[str, str] = None,
-            method: str = "POST",
-            flatten_response: bool = True,
-            response_column_name: str = "api_response",
+        self,
+        api_url: str = None,
+        mapping: Dict[str, Any] = None,
+        file_path: Union[str, Path] = None,
+        max_workers: int = 5,
+        auth: Any = None,
+        headers: Dict[str, str] = None,
+        method: str = "POST",
+        flatten_response: bool = True,
+        response_column_name: str = "api_response",
     ):
         """
         :param api_url: The URL of the API to call.
@@ -123,7 +123,6 @@ class TabularEnhancer(BaseEnhancer):
         self.sep = None
         self.df = None
         self._missing_cols_warned = set()
-
 
     def read(self) -> pd.DataFrame:
         """

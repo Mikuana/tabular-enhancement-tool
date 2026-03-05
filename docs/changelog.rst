@@ -3,6 +3,13 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.2 (2026-03-05)
+-------------------
+
+*   Fixed Sphinx build error `[myst.xref_missing]` on GitHub Actions.
+*   Updated `CONTRIBUTING.md` and `README.md` to use absolute URLs for the LICENSE file.
+*   Updated `docs/conf.py` to pull project metadata from `pyproject.toml`.
+
 v0.2.1 (2026-03-05)
 -------------------
 
