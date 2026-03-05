@@ -6,7 +6,7 @@ from .core import (
 
 __author__ = "Christopher Boyd"
 __co_author__ = "Junie"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "TabularEnhancer",
     "read_tabular_file",
