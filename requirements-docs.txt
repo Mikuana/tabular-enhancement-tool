@@ -1,6 +1,8 @@
 sphinx
 sphinx-rtd-theme
 sphinx-autodoc-typehints
+myst-parser
+linkify-it-py
 pandas
 requests
 openpyxl
