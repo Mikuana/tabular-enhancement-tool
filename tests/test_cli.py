@@ -94,32 +94,12 @@ class TestCLI(unittest.TestCase):
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
-    def test_cli_both_api_and_db_urls(self, mock_exit):
-        test_args = [
-            "cli.py",
-            self.csv_path,
-            "--api_url",
-            "http://api.example.com",
-            "--db_url",
-            "sqlite:///:memory:",
-        ]
-        with patch.object(sys, "argv", test_args):
-            with patch("builtins.print") as mock_print:
-                main()
-                mock_print.assert_any_call(
-                    "Error: Specify either --api_url or --db_url, not both."
-                )
-                mock_exit.assert_called_with(1)
-
-    @patch("sys.exit")
     def test_cli_no_urls(self, mock_exit):
         test_args = ["cli.py", self.csv_path]
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call(
-                    "Error: One of --api_url or --db_url is required."
-                )
+                mock_print.assert_any_call("Error: --api_url is required.")
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -252,37 +232,6 @@ class TestCLI(unittest.TestCase):
                 os.remove(dummy_file)
 
     @patch("sys.exit")
-    def test_cli_db_no_table(self, mock_exit):
-        test_args = ["cli.py", self.csv_path, "--db_url", "sqlite:///:memory:"]
-        with patch.object(sys, "argv", test_args):
-            with patch("builtins.print") as mock_print:
-                main()
-                mock_print.assert_any_call(
-                    "Error: --table_name is required for SQLAlchemy enhancement."
-                )
-                mock_exit.assert_called_with(1)
-
-    @patch("sys.exit")
-    def test_cli_db_mapping_not_list(self, mock_exit):
-        test_args = [
-            "cli.py",
-            self.csv_path,
-            "--db_url",
-            "sqlite:///:memory:",
-            "--table_name",
-            "users",
-            "--mapping",
-            '{"not": "a list"}',
-        ]
-        with patch.object(sys, "argv", test_args):
-            with patch("builtins.print") as mock_print:
-                main()
-                mock_print.assert_any_call(
-                    "Error: --mapping must be a JSON list for SQLAlchemy enhancement."
-                )
-                mock_exit.assert_called_with(1)
-
-    @patch("sys.exit")
     def test_cli_input_file_not_found(self, mock_exit):
         test_args = [
             "cli.py",
@@ -384,73 +333,6 @@ class TestCLI(unittest.TestCase):
 
         args, kwargs = mock_enhancer_cls.call_args
         self.assertEqual(kwargs["headers"], {"X-Custom-Key": "my_key"})
-
-    @patch("tabular_enhancement_tool.core.ODBCEnhancer")
-    @patch("tabular_enhancement_tool.core.read_tabular_file")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_sqlalchemy_execution(self, mock_save, mock_read, mock_enhancer_cls):
-        mock_read.return_value = pd.DataFrame({"id": [1]})
-        mock_enhancer = MagicMock()
-        mock_enhancer_cls.return_value = mock_enhancer
-        mock_enhancer.process_dataframe.return_value = pd.DataFrame(
-            {"id": [1], "odbc_response": [{}], "exception_summary": [None]}
-        )
-        mock_save.return_value = "test_sql_enhanced.csv"
-
-        test_args = [
-            "cli.py",
-            self.csv_path,
-            "--db_url",
-            "sqlite:///:memory:",
-            "--table_name",
-            "users",
-            "--mapping",
-            '["id"]',
-        ]
-        with patch.object(sys, "argv", test_args):
-            main()
-
-        mock_enhancer_cls.assert_called_once()
-        mock_save.assert_called_once()
-
-    @patch("logging.Logger.warning")
-    @patch("tabular_enhancement_tool.core.ODBCEnhancer")
-    @patch("tabular_enhancement_tool.core.read_tabular_file")
-    @patch("tabular_enhancement_tool.core.save_tabular_file")
-    def test_cli_db_no_flatten_warning(
-        self, mock_save, mock_read, mock_enhancer_cls, mock_warning
-    ):
-        mock_read.return_value = pd.DataFrame({"id": ["1"]})
-        mock_enhancer = MagicMock()
-        mock_enhancer_cls.return_value = mock_enhancer
-        mock_enhancer.process_dataframe.return_value = pd.DataFrame(
-            {"id": ["1"], "odbc_response": [{}], "exception_summary": [None]}
-        )
-        mock_save.return_value = "test_sql_enhanced.csv"
-
-        test_args = [
-            "cli.py",
-            self.csv_path,
-            "--db_url",
-            "sqlite:///:memory:",
-            "--table_name",
-            "users",
-            "--no_flatten",
-        ]
-        with patch.object(sys, "argv", test_args):
-            main()
-
-        mock_warning.assert_called()
-        # Find the specific warning among potentially multiple calls
-        found = False
-        for call in mock_warning.call_args_list:
-            if (
-                "The --no_flatten flag is enabled for SQLAlchemy enhancement"
-                in call.args[0]
-            ):
-                found = True
-                break
-        self.assertTrue(found)
 
 
 if __name__ == "__main__":

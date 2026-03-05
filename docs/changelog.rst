@@ -3,6 +3,26 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.1 (2026-03-05)
+-------------------
+
+*   Added support for nested dictionaries and lists in API mapping for both POST and GET methods.
+*   Updated documentation and README with nested mapping examples.
+*   Achieved 100% test coverage for the core module.
+
+v0.2.0 (2026-03-05)
+-------------------
+
+*   Removed ODBC/SQLAlchemy-based enhancement method.
+*   Focused the package exclusively on REST-based POST and GET methods.
+*   Updated documentation and CLI to remove all database-related references.
+*   Removed `sqlalchemy` dependency from `setup.py`.
+
+v0.1.5 (2026-03-04)
+-------------------
+
+*   Internal development and maintenance.
+
 v0.1.4 (2026-03-04)
 -------------------
 

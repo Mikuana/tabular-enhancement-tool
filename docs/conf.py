@@ -40,7 +40,7 @@ set_type_checking_flag = True
 typehints_fully_qualified = False
 always_document_param_types = True
 typehints_document_rtype = True
-# If you still get warnings about SQLAlchemy forward references, 
+# If you still get warnings about SQLAlchemy forward references,
 # you can tell the extension to ignore them.
 typehints_defaults = "comma"
 

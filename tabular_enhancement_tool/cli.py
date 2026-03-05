@@ -6,7 +6,7 @@ import os
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process tabular data and enhance it via API or ODBC."
+        description="Process tabular data and enhance it via REST API (POST and GET)."
     )
     parser.add_argument(
         "input_file",
@@ -15,10 +15,11 @@ def main():
 
     # API arguments
     api_group = parser.add_argument_group("API Options")
-    api_group.add_argument("--api_url", help="URL of the API to call")
+    api_group.add_argument("--api_url", required=True, help="URL of the API to call")
     api_group.add_argument(
         "--mapping",
-        help='JSON string mapping API fields or SQL parameters to DataFrame columns. e.g. \'{"id": "user_id"}\' or \'["user_id", "name"]\'',
+        required=True,
+        help='JSON string mapping API fields to DataFrame columns. e.g. \'{"id": "user_id"}\'',
     )
     api_group.add_argument(
         "--auth_type", choices=["basic", "bearer", "apikey"], help="Authentication type"
@@ -38,13 +39,6 @@ def main():
         help="HTTP method to use (default: POST)",
     )
 
-    # SQLAlchemy arguments
-    sqlalchemy_group = parser.add_argument_group("SQLAlchemy Options")
-    sqlalchemy_group.add_argument("--db_url", help="SQLAlchemy connection URL")
-    sqlalchemy_group.add_argument(
-        "--table_name", help="Name of the table to query for enhancement"
-    )
-
     parser.add_argument(
         "--max_workers",
         type=int,
@@ -54,32 +48,16 @@ def main():
     parser.add_argument(
         "--no_flatten",
         action="store_true",
-        help="Do not expand response objects into individual columns. If used, the response will be stored as a single JSON object in 'api_response' or 'odbc_response'.",
+        help="Do not expand response objects into individual columns. If used, the response will be stored as a single JSON object in 'api_response'.",
     )
 
     args = parser.parse_args()
 
     import json
-    import logging
 
-    if args.api_url and args.db_url:
-        print("Error: Specify either --api_url or --db_url, not both.")
+    if not args.api_url:
+        print("Error: --api_url is required.")
         return sys.exit(1)
-
-    if not args.api_url and not args.db_url:
-        print("Error: One of --api_url or --db_url is required.")
-        return sys.exit(1)
-
-    if args.db_url and args.no_flatten:
-        logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-        )
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "The --no_flatten flag is enabled for SQLAlchemy enhancement. "
-            "Note that SQLAlchemy results are naturally structured; "
-            "disabling flattening will wrap each row's result into a single 'odbc_response' dictionary column."
-        )
 
     try:
         mapping = json.loads(args.mapping) if args.mapping else None
@@ -87,43 +65,32 @@ def main():
         print("Error: Invalid JSON mapping string.")
         return sys.exit(1)
 
-    if args.api_url:
-        if not mapping:
-            print("Error: --mapping is required for API enhancement.")
-            return sys.exit(1)
-        if not isinstance(mapping, dict):
-            print("Error: --mapping must be a JSON object for API enhancement.")
-            return sys.exit(1)
+    if not mapping:
+        print("Error: --mapping is required for API enhancement.")
+        return sys.exit(1)
+    if not isinstance(mapping, dict):
+        print("Error: --mapping must be a JSON object for API enhancement.")
+        return sys.exit(1)
 
-        auth = None
-        headers = None
-        if args.auth_type == "basic":
-            if not args.auth_user or not args.auth_pass:
-                print("Error: --auth_user and --auth_pass are required for basic auth.")
-                return sys.exit(1)
-            from requests.auth import HTTPBasicAuth
-
-            auth = HTTPBasicAuth(args.auth_user, args.auth_pass)
-        elif args.auth_type == "bearer":
-            if not args.auth_token:
-                print("Error: --auth_token is required for bearer auth.")
-                return sys.exit(1)
-            headers = {"Authorization": f"Bearer {args.auth_token}"}
-        elif args.auth_type == "apikey":
-            if not args.auth_token:
-                print("Error: --auth_token is required for apikey auth.")
-                return sys.exit(1)
-            headers = {args.auth_header: args.auth_token}
-
-    elif args.db_url:
-        if not args.table_name:
-            print("Error: --table_name is required for SQLAlchemy enhancement.")
+    auth = None
+    headers = None
+    if args.auth_type == "basic":
+        if not args.auth_user or not args.auth_pass:
+            print("Error: --auth_user and --auth_pass are required for basic auth.")
             return sys.exit(1)
-        if mapping is not None and not isinstance(mapping, list):
-            print("Error: --mapping must be a JSON list for SQLAlchemy enhancement.")
+        from requests.auth import HTTPBasicAuth
+
+        auth = HTTPBasicAuth(args.auth_user, args.auth_pass)
+    elif args.auth_type == "bearer":
+        if not args.auth_token:
+            print("Error: --auth_token is required for bearer auth.")
             return sys.exit(1)
-        if mapping is None:
-            mapping = []
+        headers = {"Authorization": f"Bearer {args.auth_token}"}
+    elif args.auth_type == "apikey":
+        if not args.auth_token:
+            print("Error: --auth_token is required for apikey auth.")
+            return sys.exit(1)
+        headers = {args.auth_header: args.auth_token}
 
     if not os.path.exists(args.input_file):
         print(f"Error: File {args.input_file} not found.")
@@ -132,26 +99,16 @@ def main():
     print(f"Reading file {args.input_file}...")
     df = tet.read_tabular_file(args.input_file)
 
-    if args.api_url:
-        print(f"Enhancing data using API {args.api_url}...")
-        enhancer = tet.TabularEnhancer(
-            args.api_url,
-            mapping,
-            max_workers=args.max_workers,
-            auth=auth,
-            headers=headers,
-            method=args.method,
-            flatten_response=not args.no_flatten,
-        )
-    else:
-        print("Enhancing data using SQLAlchemy...")
-        enhancer = tet.ODBCEnhancer(
-            args.db_url,
-            mapping,
-            table_name=args.table_name,
-            max_workers=args.max_workers,
-            flatten_response=not args.no_flatten,
-        )
+    print(f"Enhancing data using API {args.api_url}...")
+    enhancer = tet.TabularEnhancer(
+        args.api_url,
+        mapping,
+        max_workers=args.max_workers,
+        auth=auth,
+        headers=headers,
+        method=args.method,
+        flatten_response=not args.no_flatten,
+    )
 
     df_enhanced = enhancer.process_dataframe(df)
 

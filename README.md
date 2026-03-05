@@ -15,16 +15,15 @@ In modern data lake architectures, raw tabular data (e.g., event logs, daily exp
 
 The **Tabular Enhancement Tool (tet)** is designed to streamline this enrichment process:
 
-- **Multi-source enhancement**: Fetches data from external JSON-based REST APIs or SQLAlchemy-compatible databases.
+- **Multi-source enhancement**: Fetches data from external JSON-based REST APIs.
 - **High Performance via Multi-threading**: Instead of sequential processing, which can take hours for large files, this tool utilizes a thread pool to handle hundreds of rows concurrently.
 - **Data Integrity and Precision**: The tool instructs Pandas to treat all inputs as strings, ensuring that original data—like ZIP codes with leading zeros or numeric IDs—is **retained exactly** as it appeared in the source.
 - **Append-Only Enhancement**: Your original columns are never modified. The responses are appended as new columns, allowing you to preserve the lineage of the raw data while adding new value.
-- **Response Flattening**: By default, the tool expands API/Database response objects into individual columns, making the data immediately available for analysis. For REST APIs, the tool automatically extracts the `data` field from the JSON response if present, focusing on the core payload. This behavior can be disabled if a single nested object is preferred.
+- **Response Flattening**: By default, the tool expands API response objects into individual columns, making the data immediately available for analysis. For REST APIs, the tool automatically extracts the `data` field from the JSON response if present, focusing on the core payload. This behavior can be disabled if a single nested object is preferred.
 - **Strict Order Preservation**: Even with parallel execution, the output rows are guaranteed to match the order of the input file, making it safe for downstream processes that rely on stable indexing.
-- **Flexible field mapping**: Map DataFrame columns to API payload fields or database query filters.
+- **Flexible field mapping**: Map DataFrame columns to API payload fields. Supports nested dictionaries and lists for complex JSON payloads.
 - **HTTP GET and POST support**: Choose the appropriate method for your API, with support for URL templating and query parameters.
 - **REST API Authentication**: Supports Basic Auth, Bearer Token, and API Key authentication schemes.
-- **SQLAlchemy Integration**: Supports any database with a SQLAlchemy dialect (PostgreSQL, MySQL, SQLite, Oracle, SQL Server, etc.).
 
 ## Installation
 

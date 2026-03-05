@@ -4,9 +4,7 @@ import concurrent.futures
 import logging
 import os
 import re
-from typing import Dict, Any, List, Optional, Type
-from sqlalchemy import create_engine, Table, MetaData, select
-from sqlalchemy.orm import DeclarativeBase, Session
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(
@@ -116,16 +114,24 @@ class TabularEnhancer(BaseEnhancer):
 
     def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
         """Constructs the JSON payload from the row based on mapping."""
-        payload = {}
-        for api_field, col_name in self.mapping.items():
-            if col_name not in row.index:
-                if col_name not in self._missing_cols_warned:
-                    logger.warning(
-                        f"Column '{col_name}' not found in row. Mapping it to 'None'."
-                    )
-                    self._missing_cols_warned.add(col_name)
-            payload[api_field] = row.get(col_name)
-        return payload
+
+        def _get_value(mapping_val):
+            if isinstance(mapping_val, str):
+                if mapping_val not in row.index:
+                    if mapping_val not in self._missing_cols_warned:
+                        logger.warning(
+                            f"Column '{mapping_val}' not found in row. Mapping it to 'None'."
+                        )
+                        self._missing_cols_warned.add(mapping_val)
+                return row.get(mapping_val)
+            elif isinstance(mapping_val, dict):
+                return {k: _get_value(v) for k, v in mapping_val.items()}
+            elif isinstance(mapping_val, list):
+                return [_get_value(v) for v in mapping_val]
+            else:
+                return mapping_val
+
+        return _get_value(self.mapping)
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
         """Processes a single row: calls API and handles exceptions."""
@@ -192,79 +198,6 @@ class TabularEnhancer(BaseEnhancer):
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Asynchronously processes each row of the DataFrame."""
         self._missing_cols_warned = set()
-        return super().process_dataframe(df)
-
-
-class ODBCEnhancer(BaseEnhancer):
-    def __init__(
-        self,
-        connection_url: str,
-        mapping: List[str],
-        model: Optional[Type[DeclarativeBase]] = None,
-        table_name: Optional[str] = None,
-        max_workers: int = 5,
-        flatten_response: bool = True,
-        response_column_name: str = "odbc_response",
-    ):
-        """
-        :param connection_url: SQLAlchemy connection URL.
-        :param mapping: List of column names to be used as filters in the query.
-        :param model: Optional SQLAlchemy ORM model class.
-        :param table_name: Optional table name to use if model is not provided.
-        :param max_workers: Number of threads for parallel processing.
-        :param flatten_response: Whether to expand the response into individual columns (default: True).
-        :param response_column_name: Name of the response column when flattening is disabled (default: 'odbc_response').
-        """
-        super().__init__(
-            max_workers=max_workers,
-            flatten_response=flatten_response,
-            response_column_name=response_column_name,
-        )
-        self.connection_url = connection_url
-        self.mapping = mapping if mapping is not None else []
-        self.model = model
-        self.table_name = table_name
-        self.engine = create_engine(self.connection_url)
-        self._metadata = MetaData()
-        self._table = None
-        if self.table_name:
-            self._table = Table(
-                self.table_name, self._metadata, autoload_with=self.engine
-            )
-
-    def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
-        """Processes a single row: executes SQL query using SQLAlchemy and handles exceptions."""
-        result = {"index": index, "response": None, "exception_summary": None}
-        with Session(self.engine) as session:
-            try:
-                if self.model:
-                    # Using ORM Model
-                    filters = {col: row.get(col) for col in self.mapping}
-                    stmt = select(self.model).filter_by(**filters)
-                    obj = session.execute(stmt).scalars().first()
-                    if obj:
-                        # Convert model instance to dict
-                        result["response"] = {
-                            c.name: getattr(obj, c.name) for c in obj.__table__.columns
-                        }
-                elif self._table is not None:
-                    # Using SQLAlchemy Core with table name
-                    stmt = select(self._table).where(
-                        *[self._table.c[col] == row.get(col) for col in self.mapping]
-                    )
-                    row_res = session.execute(stmt).first()
-                    if row_res:
-                        result["response"] = dict(row_res._mapping)
-                else:
-                    raise ValueError("Either 'model' or 'table_name' must be provided.")
-
-            except Exception as e:
-                logger.error(f"Error processing row {index}: {str(e)}")
-                result["exception_summary"] = str(e)
-        return result
-
-    def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Asynchronously processes each row of the DataFrame."""
         return super().process_dataframe(df)
 
 

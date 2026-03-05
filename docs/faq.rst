@@ -11,7 +11,7 @@ A: No. By default, the tool appends a suffix (e.g., ``_enhanced``) to the origin
 A: This is intentional. To prevent data loss (like leading zeros in ZIP codes or IDs), the tool reads all tabular data as strings. You can convert them back to the appropriate types in your own pipeline after enhancement.
 
 **Q: Can I use this with large files?**
-A: Yes. The tool uses a thread pool for asynchronous processing, which significantly improves performance compared to sequential row processing. However, keep in mind that performance also depends on the response time of the API or database you are calling.
+A: Yes. The tool uses a thread pool for asynchronous processing, which significantly improves performance compared to sequential row processing. However, keep in mind that performance also depends on the response time of the API you are calling.
 
 **Q: What happens if an API call fails for a single row?**
 A: The tool captures the error and records it in an ``exception_summary`` column for that row. The rest of the DataFrame will continue to be processed.
@@ -28,5 +28,3 @@ Troubleshooting
 **Issue: API authentication is failing.**
 *   **Solution**: Verify your credentials and authentication type. If you're using ``apikey``, check if the header name (default: ``X-API-Key``) is correct for your API.
 
-**Issue: SQLAlchemy connection error.**
-*   **Solution**: Ensure you have a valid SQLAlchemy connection URL and that the necessary database drivers (like ``psycopg2`` for PostgreSQL) are installed. The tool includes ``sqlalchemy``, but some drivers may need to be installed separately.
