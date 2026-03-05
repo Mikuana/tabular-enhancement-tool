@@ -4,7 +4,7 @@ import concurrent.futures
 import logging
 import os
 import re
-from typing import Dict, Any, List, Optional, Type
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(
@@ -114,16 +114,24 @@ class TabularEnhancer(BaseEnhancer):
 
     def _prepare_payload(self, row: pd.Series) -> Dict[str, Any]:
         """Constructs the JSON payload from the row based on mapping."""
-        payload = {}
-        for api_field, col_name in self.mapping.items():
-            if col_name not in row.index:
-                if col_name not in self._missing_cols_warned:
-                    logger.warning(
-                        f"Column '{col_name}' not found in row. Mapping it to 'None'."
-                    )
-                    self._missing_cols_warned.add(col_name)
-            payload[api_field] = row.get(col_name)
-        return payload
+
+        def _get_value(mapping_val):
+            if isinstance(mapping_val, str):
+                if mapping_val not in row.index:
+                    if mapping_val not in self._missing_cols_warned:
+                        logger.warning(
+                            f"Column '{mapping_val}' not found in row. Mapping it to 'None'."
+                        )
+                        self._missing_cols_warned.add(mapping_val)
+                return row.get(mapping_val)
+            elif isinstance(mapping_val, dict):
+                return {k: _get_value(v) for k, v in mapping_val.items()}
+            elif isinstance(mapping_val, list):
+                return [_get_value(v) for v in mapping_val]
+            else:
+                return mapping_val
+
+        return _get_value(self.mapping)
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
         """Processes a single row: calls API and handles exceptions."""
@@ -191,8 +199,6 @@ class TabularEnhancer(BaseEnhancer):
         """Asynchronously processes each row of the DataFrame."""
         self._missing_cols_warned = set()
         return super().process_dataframe(df)
-
-
 
 
 def read_tabular_file(file_path: str) -> pd.DataFrame:

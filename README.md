@@ -21,7 +21,7 @@ The **Tabular Enhancement Tool (tet)** is designed to streamline this enrichment
 - **Append-Only Enhancement**: Your original columns are never modified. The responses are appended as new columns, allowing you to preserve the lineage of the raw data while adding new value.
 - **Response Flattening**: By default, the tool expands API response objects into individual columns, making the data immediately available for analysis. For REST APIs, the tool automatically extracts the `data` field from the JSON response if present, focusing on the core payload. This behavior can be disabled if a single nested object is preferred.
 - **Strict Order Preservation**: Even with parallel execution, the output rows are guaranteed to match the order of the input file, making it safe for downstream processes that rely on stable indexing.
-- **Flexible field mapping**: Map DataFrame columns to API payload fields.
+- **Flexible field mapping**: Map DataFrame columns to API payload fields. Supports nested dictionaries and lists for complex JSON payloads.
 - **HTTP GET and POST support**: Choose the appropriate method for your API, with support for URL templating and query parameters.
 - **REST API Authentication**: Supports Basic Auth, Bearer Token, and API Key authentication schemes.
 

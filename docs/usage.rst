@@ -22,7 +22,7 @@ After installation, you can run the tool using the ``tet`` command:
 **API Options:**
 
 - ``--api_url``: (Required) The endpoint where the request will be sent.
-- ``--mapping``: (Required) A JSON string mapping API payload keys to your file's column names. e.g. ``'{"api_field": "csv_column"}'``.
+- ``--mapping``: (Required) A JSON string mapping API payload keys to your file's column names. Supports nested objects and lists. e.g. ``'{"personId": "id", "address": [{"street": "st"}]}'``.
 - ``--method``: (Optional) HTTP method to use (``POST`` or ``GET``, default: ``POST``).
 - ``--auth_type``: (Optional) Authentication type (``basic``, ``bearer``, or ``apikey``).
 - ``--auth_user``: (Optional) Username for ``basic`` auth.
@@ -103,7 +103,7 @@ The ``TabularEnhancer`` class is used to enrich data from any REST API that acce
 **TabularEnhancer Parameters:**
 
 *   ``api_url`` (str): The base URL of the REST API. For ``GET`` requests, you can use curly braces for URL templating (e.g., ``https://api.com/user/{id}``).
-*   ``mapping`` (dict): A dictionary where keys are the field names expected by the API, and values are the column names in your DataFrame.
+*   ``mapping`` (dict): A dictionary where keys are the field names expected by the API, and values are the column names in your DataFrame. Supports nested dictionaries and lists for complex payloads.
 *   ``method`` (str, optional): The HTTP method to use (``"POST"`` or ``"GET"``). Defaults to ``"POST"``.
 *   ``max_workers`` (int, optional): The number of concurrent threads to use. Defaults to ``5``.
 *   ``auth`` (Any, optional): Authentication object (e.g., ``requests.auth.HTTPBasicAuth("user", "pass")``).

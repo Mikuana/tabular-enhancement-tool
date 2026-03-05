@@ -39,7 +39,6 @@ def main():
         help="HTTP method to use (default: POST)",
     )
 
-
     parser.add_argument(
         "--max_workers",
         type=int,
@@ -55,7 +54,6 @@ def main():
     args = parser.parse_args()
 
     import json
-    import logging
 
     if not args.api_url:
         print("Error: --api_url is required.")

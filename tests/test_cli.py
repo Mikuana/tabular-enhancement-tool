@@ -93,16 +93,13 @@ class TestCLI(unittest.TestCase):
                 mock_print.assert_any_call("Error: Invalid JSON mapping string.")
                 mock_exit.assert_called_with(1)
 
-
     @patch("sys.exit")
     def test_cli_no_urls(self, mock_exit):
         test_args = ["cli.py", self.csv_path]
         with patch.object(sys, "argv", test_args):
             with patch("builtins.print") as mock_print:
                 main()
-                mock_print.assert_any_call(
-                    "Error: --api_url is required."
-                )
+                mock_print.assert_any_call("Error: --api_url is required.")
                 mock_exit.assert_called_with(1)
 
     @patch("sys.exit")
@@ -234,7 +231,6 @@ class TestCLI(unittest.TestCase):
             if os.path.exists(dummy_file):
                 os.remove(dummy_file)
 
-
     @patch("sys.exit")
     def test_cli_input_file_not_found(self, mock_exit):
         test_args = [
@@ -337,7 +333,6 @@ class TestCLI(unittest.TestCase):
 
         args, kwargs = mock_enhancer_cls.call_args
         self.assertEqual(kwargs["headers"], {"X-Custom-Key": "my_key"})
-
 
 
 if __name__ == "__main__":

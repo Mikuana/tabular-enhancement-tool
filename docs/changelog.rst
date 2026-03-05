@@ -3,6 +3,13 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.1 (2026-03-05)
+-------------------
+
+*   Added support for nested dictionaries and lists in API mapping for both POST and GET methods.
+*   Updated documentation and README with nested mapping examples.
+*   Achieved 100% test coverage for the core module.
+
 v0.2.0 (2026-03-05)
 -------------------
 
