@@ -104,6 +104,26 @@ The ``TabularEnhancer`` class is used to enrich data from any REST API that acce
    enhancer.enhance()
    enhancer.save(suffix="_enhanced")
 
+Verbatim Values in Mapping
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, string values in the ``mapping`` dictionary are interpreted as column names from the source file. If you want to pass a verbatim string (or any other value) that should not be looked up in the DataFrame, use the ``verbatim()`` helper:
+
+.. code-block:: python
+
+   import tabular_enhancement_tool as tet
+
+   mapping = {
+       "user_id": "ID",
+       "source": tet.verbatim("manual_import"),
+       "priority": tet.verbatim(1)
+   }
+
+   enhancer = tet.TabularEnhancer(
+       api_url="https://api.example.com/v1/enrich",
+       mapping=mapping
+   )
+
 **TabularEnhancer Parameters:**
 
 *   ``file_path`` (str or Path, optional): Path to the tabular file to process. Required if using ``read()`` or ``save()``.

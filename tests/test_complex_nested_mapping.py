@@ -99,7 +99,7 @@ class TestComplexNestedMapping(unittest.TestCase):
             params=None,
             timeout=10,
             auth=None,
-            headers=None,
+            headers={"Content-Type": "application/json"},
             cert=None,
         )
 
