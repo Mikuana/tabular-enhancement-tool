@@ -305,13 +305,17 @@ class TabularEnhancer(BaseEnhancer):
                     cert=self.cert,
                 )
             else:
+                headers = self.headers.copy() if self.headers else {}
+                if "Content-Type" not in headers:
+                    headers["Content-Type"] = "application/json"
+
                 response = requests.post(
                     url,
                     json=payload,
                     params=self.params,
                     timeout=10,
                     auth=self.auth,
-                    headers=self.headers,
+                    headers=headers,
                     cert=self.cert,
                 )
             response.raise_for_status()

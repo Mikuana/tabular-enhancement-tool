@@ -3,6 +3,12 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.5 (2026-03-13)
+-------------------
+
+*   Updated `TabularEnhancer` to set `Content-Type: application/json` by default for POST requests.
+*   The API payload in POST requests is now automatically handled as a JSON body by default.
+
 v0.2.4 (2026-03-13)
 -------------------
 
