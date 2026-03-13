@@ -35,10 +35,12 @@ class BaseEnhancer:
         self,
         max_workers: int = 5,
         flatten_response: bool = True,
+        flatten_prefix: str = None,
         response_column_name: str = "response",
     ):
         self.max_workers = max_workers
         self.flatten_response = flatten_response
+        self.flatten_prefix = flatten_prefix
         self.response_column_name = response_column_name
 
     def _process_row(self, index: int, row: pd.Series) -> Dict[str, Any]:
@@ -80,6 +82,8 @@ class BaseEnhancer:
                     expanded_responses.append({})
 
             res_df = pd.DataFrame(expanded_responses, index=df.index)
+            if self.flatten_prefix:
+                res_df = res_df.add_prefix(self.flatten_prefix)
             # Add a prefix to avoid collision?
             # The issue says "applied to the enhanced file as individual columns"
             # It doesn't specify prefix. Let's not add prefix unless needed.
@@ -107,6 +111,7 @@ class TabularEnhancer(BaseEnhancer):
         post_as_json: bool = True,
         post_json_as_string: bool = False,
         flatten_response: bool = True,
+        flatten_prefix: str = None,
         response_column_name: str = "api_response",
     ):
         """
@@ -131,12 +136,14 @@ class TabularEnhancer(BaseEnhancer):
                                     string in the 'data' parameter (default: False).
         :param flatten_response: Whether to expand the response into
                                  individual columns (default: True).
+        :param flatten_prefix: Optional prefix to add to all flattened field names.
         :param response_column_name: Name of the response column when flattening
                                      is disabled (default: 'api_response').
         """
         super().__init__(
             max_workers=max_workers,
             flatten_response=flatten_response,
+            flatten_prefix=flatten_prefix,
             response_column_name=response_column_name,
         )
         self.api_url = api_url

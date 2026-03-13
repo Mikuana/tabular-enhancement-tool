@@ -83,6 +83,10 @@ def main():
             "'api_response'."
         ),
     )
+    parser.add_argument(
+        "--flatten_prefix",
+        help="Optional prefix to add to all flattened field names.",
+    )
 
     args = parser.parse_args()
 
@@ -159,6 +163,7 @@ def main():
         post_as_json=not args.post_as_data,
         post_json_as_string=args.post_json_as_string,
         flatten_response=not args.no_flatten,
+        flatten_prefix=args.flatten_prefix,
         file_path=args.input_file,
     )
     enhancer.read()

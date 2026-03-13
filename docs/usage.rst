@@ -18,6 +18,7 @@ After installation, you can run the tool using the ``tet`` command:
 - ``input_file``: Path to your CSV, Excel, TSV, TXT, or Parquet file.
 - ``--max_workers``: (Optional) Number of concurrent threads (default: 5).
 - ``--no_flatten``: (Optional) Do not expand response objects into individual columns.
+- ``--flatten_prefix``: (Optional) Prefix to add to all flattened field names.
 
 **API Options:**
 
@@ -140,4 +141,5 @@ By default, string values in the ``mapping`` dictionary are interpreted as colum
 *   ``post_as_json`` (bool, optional): Whether to send the POST payload as a JSON body (default: ``True``).
 *   ``post_json_as_string`` (bool, optional): Whether to send the JSON payload as a string in the ``data`` parameter when ``post_as_json`` is ``False`` (default: ``False``).
 *   ``flatten_response`` (bool, optional): If ``True`` (default), the JSON response keys are expanded into individual columns. If ``False``, the entire response is stored as a dictionary in a single column.
+*   ``flatten_prefix`` (str, optional): Optional prefix to add to all flattened field names.
 *   ``response_column_name`` (str, optional): The name of the column where the raw response is stored if ``flatten_response`` is ``False``.

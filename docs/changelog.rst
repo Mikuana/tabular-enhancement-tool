@@ -3,6 +3,12 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.8 (2026-03-13)
+-------------------
+
+*   Added `flatten_prefix` parameter to `TabularEnhancer` and `--flatten_prefix` CLI flag.
+*   Allows adding an optional prefix to all flattened field names in the output DataFrame.
+
 v0.2.7 (2026-03-13)
 -------------------
 
