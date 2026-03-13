@@ -3,6 +3,13 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.4 (2026-03-13)
+-------------------
+
+*   Added `Verbatim` class and `verbatim()` helper to support verbatim string values in mapping.
+*   Updated `TabularEnhancer._prepare_payload` to correctly handle `Verbatim` objects.
+*   Updated Sphinx documentation with examples for verbatim values.
+
 v0.2.3 (2026-03-13)
 -------------------
 

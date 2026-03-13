@@ -15,6 +15,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class Verbatim:
+    """Wrapper to indicate a value should be treated verbatim in mapping."""
+
+    def __init__(self, value: Any):
+        self.value = value
+
+
+def verbatim(value: Any) -> Verbatim:
+    """Helper to wrap a value as Verbatim for mapping."""
+    return Verbatim(value)
+
+
 class BaseEnhancer:
     """Base class for enhancing DataFrames asynchronously."""
 
@@ -224,7 +236,9 @@ class TabularEnhancer(BaseEnhancer):
         """Constructs the JSON payload from the row based on mapping."""
 
         def _get_value(mapping_val):
-            if isinstance(mapping_val, str):
+            if isinstance(mapping_val, Verbatim):
+                return mapping_val.value
+            elif isinstance(mapping_val, str):
                 if mapping_val not in row.index:
                     if mapping_val not in self._missing_cols_warned:
                         logger.warning(
