@@ -50,6 +50,23 @@ def main():
         choices=["POST", "GET"],
         help="HTTP method to use (default: POST)",
     )
+    api_group.add_argument(
+        "--post_as_data",
+        action="store_true",
+        help=(
+            "Send the POST payload using the 'data' parameter instead of 'json'. "
+            "This will typically send the data as 'application/x-www-form-urlencoded' "
+            "if the mapping is a simple dictionary."
+        ),
+    )
+    api_group.add_argument(
+        "--post_json_as_string",
+        action="store_true",
+        help=(
+            "When used with --post_as_data, sends the JSON payload as a "
+            "string in the 'data' parameter instead of form-encoding it."
+        ),
+    )
 
     parser.add_argument(
         "--max_workers",
@@ -139,6 +156,8 @@ def main():
         params=params,
         cert=cert,
         method=args.method,
+        post_as_json=not args.post_as_data,
+        post_json_as_string=args.post_json_as_string,
         flatten_response=not args.no_flatten,
         file_path=args.input_file,
     )

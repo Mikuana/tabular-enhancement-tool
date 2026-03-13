@@ -3,6 +3,18 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.7 (2026-03-13)
+-------------------
+
+*   Added `post_json_as_string` parameter to `TabularEnhancer` and `--post_json_as_string` CLI flag.
+*   Allows sending JSON payload as a string in the `data` parameter of POST requests, improving compatibility with servers that expect JSON but do not handle `application/json` Content-Type automatically or require it in the `data` field.
+
+v0.2.6 (2026-03-13)
+-------------------
+
+*   Added `post_as_json` parameter to `TabularEnhancer` and `--post_as_data` CLI flag to allow choosing between `json` and `data` parameters in POST requests.
+*   Improved compatibility with API servers that do not support JSON-encoded bodies or require form-encoded data.
+
 v0.2.5 (2026-03-13)
 -------------------
 

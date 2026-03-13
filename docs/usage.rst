@@ -31,6 +31,8 @@ After installation, you can run the tool using the ``tet`` command:
 - ``--auth_header``: (Optional) Custom header for ``apikey`` auth (default: ``X-API-Key``).
 - ``--params``: (Optional) JSON string of constant query parameters for all API calls.
 - ``--cert``: (Optional) Path to SSL certificate file (.pem) or JSON array of ('cert', 'key') tuple.
+- ``--post_as_data``: (Optional) Use the ``data`` parameter instead of ``json`` for POST requests.
+- ``--post_json_as_string``: (Optional) When used with ``--post_as_data``, sends the JSON payload as a string in the ``data`` parameter instead of form-encoding it.
 
 CLI Usage Example
 ~~~~~~~~~~~~~~~~~
@@ -135,5 +137,7 @@ By default, string values in the ``mapping`` dictionary are interpreted as colum
 *   ``headers`` (dict, optional): Custom headers for the request. Often used for Bearer Tokens: ``{"Authorization": "Bearer ..."}``.
 *   ``params`` (dict, optional): Constant query parameters to be sent with every request. For ``GET`` requests, these are merged with mapping-derived parameters.
 *   ``cert`` (str or tuple, optional): SSL certificate for the API call. Can be a path to a ``.pem`` file or a ``('cert', 'key')`` tuple.
+*   ``post_as_json`` (bool, optional): Whether to send the POST payload as a JSON body (default: ``True``).
+*   ``post_json_as_string`` (bool, optional): Whether to send the JSON payload as a string in the ``data`` parameter when ``post_as_json`` is ``False`` (default: ``False``).
 *   ``flatten_response`` (bool, optional): If ``True`` (default), the JSON response keys are expanded into individual columns. If ``False``, the entire response is stored as a dictionary in a single column.
 *   ``response_column_name`` (str, optional): The name of the column where the raw response is stored if ``flatten_response`` is ``False``.

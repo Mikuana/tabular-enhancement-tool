@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 import logging
 import os
 import re
@@ -103,6 +104,8 @@ class TabularEnhancer(BaseEnhancer):
         params: Dict[str, Any] = None,
         cert: Any = None,
         method: str = "POST",
+        post_as_json: bool = True,
+        post_json_as_string: bool = False,
         flatten_response: bool = True,
         response_column_name: str = "api_response",
     ):
@@ -121,6 +124,11 @@ class TabularEnhancer(BaseEnhancer):
         :param cert: Optional SSL certificate for the API call
                      (e.g., path to cert file or ('cert', 'key') tuple).
         :param method: HTTP method to use (POST or GET).
+        :param post_as_json: Whether to send the POST payload as a JSON body 
+                             (using the 'json' parameter) or as form data 
+                             (using the 'data' parameter) (default: True).
+        :param post_json_as_string: Whether to send the JSON payload as a 
+                                    string in the 'data' parameter (default: False).
         :param flatten_response: Whether to expand the response into
                                  individual columns (default: True).
         :param response_column_name: Name of the response column when flattening
@@ -138,6 +146,8 @@ class TabularEnhancer(BaseEnhancer):
         self.params = params
         self.cert = cert
         self.method = method.upper() if method else "POST"
+        self.post_as_json = post_as_json
+        self.post_json_as_string = post_json_as_string
         self.file_path = str(file_path) if file_path else None
         self.sep = None
         self.df = None
@@ -309,15 +319,29 @@ class TabularEnhancer(BaseEnhancer):
                 if "Content-Type" not in headers:
                     headers["Content-Type"] = "application/json"
 
-                response = requests.post(
-                    url,
-                    json=payload,
-                    params=self.params,
-                    timeout=10,
-                    auth=self.auth,
-                    headers=headers,
-                    cert=self.cert,
-                )
+                if self.post_as_json:
+                    response = requests.post(
+                        url,
+                        json=payload,
+                        params=self.params,
+                        timeout=10,
+                        auth=self.auth,
+                        headers=headers,
+                        cert=self.cert,
+                    )
+                else:
+                    if self.post_json_as_string:
+                        payload = json.dumps(payload)
+
+                    response = requests.post(
+                        url,
+                        data=payload,
+                        params=self.params,
+                        timeout=10,
+                        auth=self.auth,
+                        headers=headers,
+                        cert=self.cert,
+                    )
             response.raise_for_status()
             json_response = response.json()
 
