@@ -29,6 +29,8 @@ After installation, you can run the tool using the ``tet`` command:
 - ``--auth_pass``: (Optional) Password for ``basic`` auth.
 - ``--auth_token``: (Optional) Token for ``bearer`` or ``apikey`` auth.
 - ``--auth_header``: (Optional) Custom header for ``apikey`` auth (default: ``X-API-Key``).
+- ``--params``: (Optional) JSON string of constant query parameters for all API calls.
+- ``--cert``: (Optional) Path to SSL certificate file (.pem) or JSON array of ('cert', 'key') tuple.
 
 CLI Usage Example
 ~~~~~~~~~~~~~~~~~
@@ -53,6 +55,9 @@ CLI Authentication Examples
 
    # API Key
    tet data.csv --api_url "..." --mapping '...' --auth_type apikey --auth_token "your_api_key"
+
+   # Custom Parameters and SSL Certificate
+   tet data.csv --api_url "..." --mapping '...' --params '{"version": "v1"}' --cert "/path/to/cert.pem"
 
    # GET request with URL templating
    tet data.csv --api_url "https://api.weather.gov/points/{lat},{lon}" --mapping '{"lat": "latitude", "lon": "longitude"}' --method GET
@@ -108,5 +113,7 @@ The ``TabularEnhancer`` class is used to enrich data from any REST API that acce
 *   ``max_workers`` (int, optional): The number of concurrent threads to use. Defaults to ``5``.
 *   ``auth`` (Any, optional): Authentication object (e.g., ``requests.auth.HTTPBasicAuth("user", "pass")``).
 *   ``headers`` (dict, optional): Custom headers for the request. Often used for Bearer Tokens: ``{"Authorization": "Bearer ..."}``.
+*   ``params`` (dict, optional): Constant query parameters to be sent with every request. For ``GET`` requests, these are merged with mapping-derived parameters.
+*   ``cert`` (str or tuple, optional): SSL certificate for the API call. Can be a path to a ``.pem`` file or a ``('cert', 'key')`` tuple.
 *   ``flatten_response`` (bool, optional): If ``True`` (default), the JSON response keys are expanded into individual columns. If ``False``, the entire response is stored as a dictionary in a single column.
 *   ``response_column_name`` (str, optional): The name of the column where the raw response is stored if ``flatten_response`` is ``False``.

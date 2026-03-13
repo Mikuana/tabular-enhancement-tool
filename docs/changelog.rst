@@ -3,6 +3,14 @@ Changelog
 
 All notable changes to the **Tabular-Enhancement-Tool** will be documented in this file.
 
+v0.2.3 (2026-03-13)
+-------------------
+
+*   Added support for `params` and `cert` in `TabularEnhancer` and CLI.
+*   Enhanced `TabularEnhancer._process_row` to merge global `params` with row-specific parameters for GET requests.
+*   Updated CLI to include `--params` and `--cert` arguments.
+*   Updated Sphinx documentation and usage examples to reflect new features.
+
 v0.2.2 (2026-03-05)
 -------------------
 

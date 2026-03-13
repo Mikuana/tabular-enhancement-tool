@@ -94,7 +94,13 @@ class TestComplexNestedMapping(unittest.TestCase):
             }
         }
         mock_post.assert_called_with(
-            "http://api.com", json=expected_json, timeout=10, auth=None, headers=None
+            "http://api.com",
+            json=expected_json,
+            params=None,
+            timeout=10,
+            auth=None,
+            headers=None,
+            cert=None,
         )
 
 

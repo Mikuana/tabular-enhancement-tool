@@ -224,7 +224,12 @@ class TestCore(unittest.TestCase):
         # First row: id="01", name="Alice"
         expected_url = "http://api.example.com/points/01,Alice"
         mock_get.assert_any_call(
-            expected_url, params=None, timeout=10, auth=None, headers=None
+            expected_url,
+            params=None,
+            timeout=10,
+            auth=None,
+            headers=None,
+            cert=None,
         )
         self.assertEqual(df_enhanced.loc[0, "forecast"], "url")
 
@@ -243,7 +248,12 @@ class TestCore(unittest.TestCase):
 
         # First row: name="Alice" -> ?q=Alice
         mock_get.assert_any_call(
-            api_url, params={"q": "Alice"}, timeout=10, auth=None, headers=None
+            api_url,
+            params={"q": "Alice"},
+            timeout=10,
+            auth=None,
+            headers=None,
+            cert=None,
         )
         self.assertEqual(df_enhanced.loc[0, "res"], "ok")
 
@@ -292,6 +302,7 @@ class TestCore(unittest.TestCase):
             timeout=10,
             auth=None,
             headers=None,
+            cert=None,
         )
         self.assertEqual(df_enhanced.loc[0, "combined"], "ok")
 

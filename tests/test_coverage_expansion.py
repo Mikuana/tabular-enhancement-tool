@@ -60,7 +60,12 @@ class TestCoverageExpansion(unittest.TestCase):
         # url = self.api_url
         # params = payload
         mock_get.assert_called_with(
-            api_url, params={"id": "1"}, timeout=10, auth=None, headers=None
+            api_url,
+            params={"id": "1"},
+            timeout=10,
+            auth=None,
+            headers=None,
+            cert=None,
         )
         self.assertEqual(result["response"], {"status": "ok"})
 

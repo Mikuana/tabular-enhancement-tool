@@ -88,6 +88,8 @@ class TabularEnhancer(BaseEnhancer):
         max_workers: int = 5,
         auth: Any = None,
         headers: Dict[str, str] = None,
+        params: Dict[str, Any] = None,
+        cert: Any = None,
         method: str = "POST",
         flatten_response: bool = True,
         response_column_name: str = "api_response",
@@ -103,6 +105,9 @@ class TabularEnhancer(BaseEnhancer):
                      (e.g., requests.auth.HTTPBasicAuth).
         :param headers: Optional custom headers for the API call
                         (e.g., for API Key or Bearer Token).
+        :param params: Optional constant query parameters for all API calls.
+        :param cert: Optional SSL certificate for the API call
+                     (e.g., path to cert file or ('cert', 'key') tuple).
         :param method: HTTP method to use (POST or GET).
         :param flatten_response: Whether to expand the response into
                                  individual columns (default: True).
@@ -118,6 +123,8 @@ class TabularEnhancer(BaseEnhancer):
         self.mapping = mapping
         self.auth = auth
         self.headers = headers
+        self.params = params
+        self.cert = cert
         self.method = method.upper() if method else "POST"
         self.file_path = str(file_path) if file_path else None
         self.sep = None
@@ -268,20 +275,30 @@ class TabularEnhancer(BaseEnhancer):
                 if not params:
                     params = None
 
+                # Merge with global params if provided
+                if self.params:
+                    if params is None:
+                        params = self.params.copy()
+                    else:
+                        params.update(self.params)
+
                 response = requests.get(
                     url,
                     params=params,
                     timeout=10,
                     auth=self.auth,
                     headers=self.headers,
+                    cert=self.cert,
                 )
             else:
                 response = requests.post(
                     url,
                     json=payload,
+                    params=self.params,
                     timeout=10,
                     auth=self.auth,
                     headers=self.headers,
+                    cert=self.cert,
                 )
             response.raise_for_status()
             json_response = response.json()

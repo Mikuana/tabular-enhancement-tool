@@ -37,6 +37,14 @@ def main():
         help="Header name for API Key auth (default: X-API-Key)",
     )
     api_group.add_argument(
+        "--params",
+        help="JSON string of constant query parameters for all API calls.",
+    )
+    api_group.add_argument(
+        "--cert",
+        help="Path to SSL certificate file (.pem) or JSON array of ('cert', 'key') tuple.",
+    )
+    api_group.add_argument(
         "--method",
         default="POST",
         choices=["POST", "GET"],
@@ -72,6 +80,23 @@ def main():
     except json.JSONDecodeError:
         print("Error: Invalid JSON mapping string.")
         return sys.exit(1)
+
+    params = None
+    if args.params:
+        try:
+            params = json.loads(args.params)
+        except json.JSONDecodeError:
+            print("Error: Invalid JSON string for --params.")
+            return sys.exit(1)
+
+    cert = None
+    if args.cert:
+        try:
+            # Try parsing as JSON for ('cert', 'key') tuple
+            cert = json.loads(args.cert)
+        except json.JSONDecodeError:
+            # Fallback to string (path to .pem)
+            cert = args.cert
 
     if not mapping:
         print("Error: --mapping is required for API enhancement.")
@@ -111,6 +136,8 @@ def main():
         max_workers=args.max_workers,
         auth=auth,
         headers=headers,
+        params=params,
+        cert=cert,
         method=args.method,
         flatten_response=not args.no_flatten,
         file_path=args.input_file,
